@@ -53,7 +53,7 @@ describe("tổ hợp construct", () => {
 
     expectGraph(g, {
       nodeCount: 11,
-      edgeCount: 13,
+      edgeCount: 14,
       kinds: {
         entry: 1,
         statement: 3,
@@ -78,6 +78,10 @@ describe("tổ hợp construct", () => {
         ["statement:total += item.length;", "none", "finally"],
         ["finally", "none", "statement:total += 1;"],
         ["statement:total += 1;", "none", "loop:for (const item of items)"],
+        // try không có catch: nếu thân try ném thì finally chạy xong, exception rời khỏi hàm.
+        // Node này nằm TRONG khối finally (parentId trỏ về node finally) nên không phải đi
+        // qua finally lần nữa - đi thẳng ra biên hàm là đúng.
+        ["statement:total += 1;", "exception", "exit"],
         ["loop:for (const item of items)", "false", "return:return total"],
         ["return:return total", "none", "exit"],
       ],

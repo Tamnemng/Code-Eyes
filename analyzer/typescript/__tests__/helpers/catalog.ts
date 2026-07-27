@@ -12,6 +12,12 @@ export interface FixtureCase {
   cursor?: string;
   /** Node cố ý unreachable (code sau return) - được miễn kiểm tra "phải có edge vào". */
   allowUnreachable?: NodeMatcher[];
+  /**
+   * Vòng lặp mà thân KHÔNG BAO GIỜ hoàn thành bình thường (luôn break/return/throw)
+   * thì không có cạnh ngược - đúng ngữ nghĩa, xem SEMANTICS §4. Miễn kiểm tra
+   * "mỗi loop phải nằm trên một chu trình".
+   */
+  allowAcyclicLoop?: boolean;
 }
 
 export function cursorToken(testCase: FixtureCase): string {
@@ -89,4 +95,18 @@ export const CATALOG: readonly FixtureCase[] = [
   { file: "15-combined.ts", fn: "findFirst" },
   { file: "15-combined.ts", fn: "sumValid" },
   { file: "15-combined.ts", fn: "overridden" },
+
+  // Bộ độc lập (Phần A) - do người review đặc tả, xem 16-independent.test.ts
+  { file: "16-independent.ts", fn: "nestedFinallyReturn" },
+  { file: "16-independent.ts", fn: "nestedFinallyBreak", allowAcyclicLoop: true },
+  {
+    file: "16-independent.ts",
+    fn: "nestedFinallyThrow",
+    allowUnreachable: ['return:"unreachable"'],
+  },
+  { file: "16-independent.ts", fn: "finallyOverridesNested" },
+  { file: "16-independent.ts", fn: "doWhileBackEdge" },
+  { file: "16-independent.ts", fn: "multiFallthrough" },
+  { file: "16-independent.ts", fn: "returnInLoopInTry" },
+  { file: "16-independent.ts", fn: "noFinallyDirect", allowUnreachable: ['return:"c"'] },
 ];

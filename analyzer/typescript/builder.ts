@@ -57,17 +57,49 @@ interface LabelTarget {
   readonly continueTarget?: ContinueTarget;
 }
 
+/**
+ * Một đường thoát bị khối finally chặn lại. Sau khi finally chạy xong, luồng phải
+ * đi tiếp tới ĐÍCH THẬT của nó chứ không nhập vào luồng hoàn thành bình thường
+ * (SEMANTICS §7). Không có cái này thì `break outer` bên trong try/finally sẽ mất
+ * đích, và code sau một khối try luôn ném sẽ bị coi là đến được.
+ */
+type PendingExit =
+  | { readonly kind: "exit" }
+  | { readonly kind: "exception"; readonly to: string }
+  | { readonly kind: "break"; readonly target: BreakTarget }
+  | { readonly kind: "continue"; readonly target: ContinueTarget };
+
+interface FinallyFrame {
+  readonly nodeId: string;
+  /** Các đường thoát đang chờ nối tiếp sau khi khối finally này chạy xong. */
+  readonly pending: PendingExit[];
+}
+
+/** Ngữ cảnh "nếu ném từ đây thì rơi vào một finally, và sau finally đó đi đâu". */
+interface ExceptionPending {
+  readonly frame: FinallyFrame;
+  /** Handler bao ngoài - nơi exception tiếp tục sau khi finally chạy xong. */
+  readonly to: string;
+}
+
 interface Scope {
   readonly breakTarget?: BreakTarget;
   readonly continueTarget?: ContinueTarget;
   readonly labels: ReadonlyMap<string, LabelTarget>;
-  /** Các node finally đang bao quanh, trong cùng ở cuối. */
-  readonly finallyStack: readonly string[];
+  /** Các khối finally đang bao quanh, trong cùng ở cuối. */
+  readonly finallyStack: readonly FinallyFrame[];
   /** Node nhận edge "exception" khi có throw. */
   readonly exceptionTarget: string;
+  /** Chỉ có giá trị khi `exceptionTarget` là một node finally. */
+  readonly exceptionPending?: ExceptionPending;
   /** parentId cho node con - node đánh dấu vùng try/catch/finally. */
   readonly regionId?: string;
   readonly insideFinally: boolean;
+  /**
+   * Đang dựng code không đến được (§5). Node vẫn được giữ, nhưng KHÔNG được phát
+   * edge đi ra - nếu không, `return` trong code chết sẽ tạo đường tới exit.
+   */
+  readonly unreachable: boolean;
 }
 
 /** Kết quả dựng một đoạn: node đầu tiên (null nếu đoạn không tạo node) và các đầu hở. */
@@ -102,6 +134,73 @@ function withLabels(
     map.set(name, continueTarget === undefined ? { breakTarget } : { breakTarget, continueTarget });
   }
   return map;
+}
+
+/**
+ * Số finally mà đường thoát này được phép "đứng trên" mà không phải chạy.
+ * `return` và exception thoát khỏi cả hàm nên phải chạy MỌI finally đang bao quanh.
+ * `break`/`continue` chỉ phải chạy các finally nằm giữa nó và vòng lặp/switch đích.
+ */
+function barrierDepth(pending: PendingExit): number {
+  switch (pending.kind) {
+    case "exit":
+      return 0;
+    case "break":
+    case "continue":
+      return pending.target.finallyDepth;
+    case "exception":
+      // `to` đã là handler bao ngoài (tính lúc dựng try), không bị chặn thêm lần nữa.
+      return Number.POSITIVE_INFINITY;
+  }
+}
+
+function samePending(a: PendingExit, b: PendingExit): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "exception" && b.kind === "exception") return a.to === b.to;
+  if (a.kind === "break" && b.kind === "break") return a.target === b.target;
+  if (a.kind === "continue" && b.kind === "continue") return a.target === b.target;
+  return true;
+}
+
+/**
+ * Scope con của một vùng try/catch/finally. Phải gán tường minh `exceptionPending`
+ * (kể cả khi là undefined) để không vô tình kế thừa ngữ cảnh ném của vùng bao ngoài.
+ */
+function nestedScope(
+  base: Scope,
+  fields: {
+    exceptionTarget: string;
+    exceptionPending: ExceptionPending | undefined;
+    regionId: string;
+    finallyStack: readonly FinallyFrame[];
+    insideFinally?: boolean;
+  },
+): Scope {
+  const scope: Scope = {
+    ...base,
+    exceptionTarget: fields.exceptionTarget,
+    regionId: fields.regionId,
+    finallyStack: fields.finallyStack,
+    insideFinally: fields.insideFinally ?? base.insideFinally,
+  };
+  if (fields.exceptionPending === undefined) {
+    delete (scope as { exceptionPending?: ExceptionPending }).exceptionPending;
+    return scope;
+  }
+  return { ...scope, exceptionPending: fields.exceptionPending };
+}
+
+function addPending(list: PendingExit[], pending: PendingExit): void {
+  if (list.some((existing) => samePending(existing, pending))) return;
+  list.push(pending);
+}
+
+/**
+ * Đường thoát thường (return/break/continue) nối trước, exception nối sau: khi hai
+ * đường trùng đích thì edge giữ lại là edge không nhãn, đúng như luồng thật.
+ */
+function orderedPendings(list: readonly PendingExit[]): PendingExit[] {
+  return [...list.filter((p) => p.kind !== "exception"), ...list.filter((p) => p.kind === "exception")];
 }
 
 export function buildFlowGraph(
@@ -145,6 +244,7 @@ class GraphBuilder {
       finallyStack: [],
       exceptionTarget: this.exitId,
       insideFinally: false,
+      unreachable: false,
     };
 
     const body = fn.body;
@@ -198,7 +298,22 @@ class GraphBuilder {
   }
 
   private edge(from: string, to: string, label?: EdgeLabel): void {
+    // Edge y hệt (cùng from/to/label) là trùng lặp theo bất biến của schema. Nó xảy ra khi
+    // một đường thoát treo ở finally và đường hoàn thành bình thường về cùng một đích.
+    if (this.edges.some((e) => e.from === from && e.to === to && (e.label ?? null) === (label ?? null))) {
+      return;
+    }
     this.edges.push(label === undefined ? { from, to } : { from, to, label });
+  }
+
+  /**
+   * Edge chỉ tạo khi chưa có edge nào cùng cặp (from, to) - kể cả khác nhãn.
+   * Dùng khi nối lại các đường thoát treo ở finally: đích của chúng thường trùng
+   * với đường hoàn thành bình thường, và graph không được có edge song song.
+   */
+  private edgeOnce(from: string, to: string, label?: EdgeLabel): void {
+    if (this.edges.some((e) => e.from === from && e.to === to)) return;
+    this.edge(from, to, label);
   }
 
   private connect(open: readonly OpenEnd[], to: string): void {
@@ -250,7 +365,7 @@ class GraphBuilder {
           this.warn(`unreachable code at line ${this.groupLine(group)}`);
           warnedUnreachable = true;
         }
-        this.buildGroup(group, [], scope);
+        this.buildGroup(group, [], { ...scope, unreachable: true });
         continue;
       }
       const segment = this.buildGroup(group, open, scope);
@@ -518,10 +633,12 @@ class GraphBuilder {
         : scope.labels.get(stmt.label.text)?.breakTarget;
     if (target === undefined) {
       this.warn(`break without a target at line ${lineOf(stmt, this.sf)}`);
-      this.edge(id, this.exitId);
+      if (!scope.unreachable) this.edge(id, this.exitId);
       return { entry: id, open: [] };
     }
-    this.jump(id, target.finallyDepth, scope, () => target.collect.push({ from: id }));
+    if (!scope.unreachable) {
+      this.routePending(id, { kind: "break", target }, scope.finallyStack);
+    }
     return { entry: id, open: [] };
   }
 
@@ -542,26 +659,57 @@ class GraphBuilder {
         : scope.labels.get(stmt.label.text)?.continueTarget;
     if (target === undefined) {
       this.warn(`continue without a target at line ${lineOf(stmt, this.sf)}`);
-      this.edge(id, this.exitId);
+      if (!scope.unreachable) this.edge(id, this.exitId);
       return { entry: id, open: [] };
     }
-    this.jump(id, target.finallyDepth, scope, () => this.edge(id, target.nodeId));
+    if (!scope.unreachable) {
+      this.routePending(id, { kind: "continue", target }, scope.finallyStack);
+    }
     return { entry: id, open: [] };
   }
 
   /**
    * §7: nhảy ra khỏi một khối try có finally thì phải chạy finally trước.
-   * `direct` chỉ chạy khi không có finally nào chen giữa điểm nhảy và đích.
+   *
+   * Nếu có finally chen giữa điểm nhảy và đích: nối tới finally TRONG CÙNG và ghi
+   * đích thật vào frame của nó. Đích đó sẽ được nối lại từ các đầu hở của khối
+   * finally sau khi khối đó dựng xong - và có thể bị một finally ngoài hơn chặn
+   * tiếp, nên `break` xuyên nhiều tầng finally vẫn tới đúng nơi.
    */
-  private jump(nodeId: string, targetDepth: number, scope: Scope, direct: () => void): void {
-    if (scope.finallyStack.length > targetDepth) {
-      const innermost = scope.finallyStack[scope.finallyStack.length - 1];
-      if (innermost !== undefined) {
-        this.edge(nodeId, innermost);
-        return;
-      }
+  private routePending(
+    fromId: string,
+    pending: PendingExit,
+    stack: readonly FinallyFrame[],
+    label?: EdgeLabel,
+    once = false,
+  ): void {
+    const emit = once
+      ? (to: string, edgeLabel?: EdgeLabel): void => this.edgeOnce(fromId, to, edgeLabel)
+      : (to: string, edgeLabel?: EdgeLabel): void => this.edge(fromId, to, edgeLabel);
+
+    const frame = stack.length > barrierDepth(pending) ? stack[stack.length - 1] : undefined;
+    if (frame !== undefined) {
+      emit(frame.nodeId, pending.kind === "exception" ? "exception" : label);
+      addPending(frame.pending, pending);
+      return;
     }
-    direct();
+
+    switch (pending.kind) {
+      case "exit":
+        emit(this.exitId, label);
+        return;
+      case "exception":
+        emit(pending.to, "exception");
+        return;
+      case "continue":
+        emit(pending.target.nodeId, label);
+        return;
+      case "break":
+        if (!once || !pending.target.collect.some((end) => end.from === fromId)) {
+          pending.target.collect.push(label === undefined ? { from: fromId } : { from: fromId, label });
+        }
+        return;
+    }
   }
 
   private buildLabeled(stmt: ts.LabeledStatement, incoming: OpenEnd[], scope: Scope): Segment {
@@ -695,26 +843,39 @@ class GraphBuilder {
     const handler = catchId ?? finallyId ?? this.exitId;
     this.edge(tryId, handler, "exception");
 
+    const frame: FinallyFrame | undefined =
+      finallyId === undefined ? undefined : { nodeId: finallyId, pending: [] };
     const nestedFinally =
-      finallyId === undefined ? scope.finallyStack : [...scope.finallyStack, finallyId];
+      frame === undefined ? scope.finallyStack : [...scope.finallyStack, frame];
 
-    const tryScope: Scope = {
-      ...scope,
+    // Không có catch: edge exception ở trên đi thẳng vào finally, nên exception CHẮC CHẮN
+    // có thể xuyên qua finally này và tiếp tục ra handler bao ngoài.
+    const escaping: ExceptionPending | undefined =
+      frame !== undefined && handler === finallyId
+        ? { frame, to: scope.exceptionTarget }
+        : undefined;
+    if (escaping !== undefined) {
+      addPending(escaping.frame.pending, { kind: "exception", to: escaping.to });
+    }
+
+    const tryScope = nestedScope(scope, {
       exceptionTarget: handler,
+      exceptionPending: escaping,
       regionId: tryId,
       finallyStack: nestedFinally,
-    };
+    });
     const tryOpen = this.buildStatements(stmt.tryBlock.statements, [{ from: tryId }], tryScope).open;
 
     let catchOpen: OpenEnd[] = [];
     if (catchClause !== undefined && catchId !== undefined) {
-      const catchScope: Scope = {
-        ...scope,
-        // throw trong catch: finally của chính khối này, nếu không có thì handler bao ngoài.
+      // throw trong catch: finally của chính khối này, nếu không có thì handler bao ngoài.
+      const catchScope = nestedScope(scope, {
         exceptionTarget: finallyId ?? scope.exceptionTarget,
+        exceptionPending:
+          frame === undefined ? scope.exceptionPending : { frame, to: scope.exceptionTarget },
         regionId: catchId,
         finallyStack: nestedFinally,
-      };
+      });
       catchOpen = this.buildStatements(
         catchClause.block.statements,
         [{ from: catchId }],
@@ -722,20 +883,37 @@ class GraphBuilder {
       ).open;
     }
 
-    if (finallyId !== undefined && finallyBlock !== undefined) {
+    if (frame !== undefined && finallyId !== undefined && finallyBlock !== undefined) {
+      // Có đường hoàn thành BÌNH THƯỜNG vào finally hay không. Nếu không (mọi đường ra
+      // khỏi try/catch đều là return/throw/break/continue) thì bản thân câu try KHÔNG
+      // hoàn thành bình thường, nên code phía sau nó là code chết.
+      const normalEntry = tryOpen.length > 0 || catchOpen.length > 0;
       this.connect(tryOpen, finallyId);
       this.connect(catchOpen, finallyId);
-      const finallyScope: Scope = {
-        ...scope,
+
+      // finally KHÔNG tự đưa mình vào finallyStack: throw/return trong finally đi ra ngoài,
+      // không quay lại chính nó.
+      const finallyScope = nestedScope(scope, {
+        exceptionTarget: scope.exceptionTarget,
+        exceptionPending: scope.exceptionPending,
         regionId: finallyId,
+        finallyStack: scope.finallyStack,
         insideFinally: true,
-      };
+      });
       const finallyOpen = this.buildStatements(
         finallyBlock.statements,
         [{ from: finallyId }],
         finallyScope,
       ).open;
-      return { entry: tryId, open: finallyOpen };
+
+      // Nối lại các đường thoát đã bị finally này chặn, tính từ đầu hở của khối finally.
+      for (const pending of orderedPendings(frame.pending)) {
+        for (const end of finallyOpen) {
+          this.routePending(end.from, pending, scope.finallyStack, end.label, /* once */ true);
+        }
+      }
+
+      return { entry: tryId, open: normalEntry ? finallyOpen : [] };
     }
 
     return { entry: tryId, open: [...tryOpen, ...catchOpen] };
@@ -774,8 +952,9 @@ class GraphBuilder {
       );
     }
 
-    const innermostFinally = scope.finallyStack[scope.finallyStack.length - 1];
-    this.edge(id, innermostFinally ?? this.exitId);
+    if (!scope.unreachable) {
+      this.routePending(id, { kind: "exit" }, scope.finallyStack);
+    }
     return { entry: id, open: [] };
   }
 
@@ -788,7 +967,16 @@ class GraphBuilder {
       scope,
     );
     this.connect(incoming, id);
-    this.edge(id, scope.exceptionTarget, "exception");
+    if (!scope.unreachable) {
+      this.edge(id, scope.exceptionTarget, "exception");
+      // Ném vào một finally: sau khi finally chạy xong, exception phải đi tiếp ra ngoài.
+      if (scope.exceptionPending !== undefined) {
+        addPending(scope.exceptionPending.frame.pending, {
+          kind: "exception",
+          to: scope.exceptionPending.to,
+        });
+      }
+    }
     return { entry: id, open: [] };
   }
 

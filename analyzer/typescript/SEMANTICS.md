@@ -95,10 +95,25 @@ Bất biến được kiểm trong `00-invariants` (chạy trên mọi fixture):
 - mọi back edge đều có ít nhất một node `loop` trên chu trình của nó → không có chu trình mồ côi;
 - số back edge ≥ số node `loop`.
 
-Lưu ý: một vòng lặp có thể có NHIỀU cạnh ngược - đúng bằng số đường quay về header, tức
-là 1 (đường chảy tự nhiên ở cuối thân) + số `continue` nhắm tới nó. Vì vậy bất biến chung
-không thể chốt "đúng một cạnh"; test của từng fixture chốt con số chính xác bằng
-`expectBackEdgeCount`.
+Lưu ý: một vòng lặp có thể có NHIỀU cạnh ngược - đúng bằng số đường quay về **header của
+chu trình**, tức là 1 (đường chảy tự nhiên ở cuối thân) + số `continue` nhắm tới header đó.
+Vì vậy bất biến chung không thể chốt "đúng một cạnh"; test của từng fixture chốt con số
+chính xác bằng `expectBackEdgeCount`.
+
+`do-while` là ngoại lệ của phép đếm trên, vì header chu trình KHÔNG phải node `loop`:
+
+- node `loop` của `do-while` là điều kiện, nằm ở **cuối** thân;
+- header chu trình là node **đầu thân**, và đường duy nhất vào nó từ trong chu trình là
+  edge `true` của node `loop` → **đúng 1 cạnh ngược**, bất kể có bao nhiêu `continue`;
+- `continue` nhắm tới node `loop`, mà node đó nằm *bên trong* chu trình chứ không phải ở
+  đầu, nên edge `continue → loop` không phải cạnh ngược (theo cả định nghĩa DFS lẫn định
+  nghĩa "đích thống trị nguồn").
+
+Trường hợp biên thứ hai: thân vòng lặp **không bao giờ hoàn thành bình thường** (mọi đường
+đều `break`/`return`/`throw`, ví dụ `for (...) { try { break outer } finally {...} }`). Khi
+đó vòng lặp không có cạnh ngược nào và bất biến "mỗi loop nằm trên một chu trình" gãy - đây
+là **kết quả đúng**: thân chạy tối đa một lần. Case như vậy khai báo `allowAcyclicLoop: true`
+trong catalog, không sửa analyzer.
 
 ## 5. break / continue
 
@@ -166,10 +181,43 @@ Node đánh dấu vùng: `try`, `catch`, `finally`. Statement bên trong là nod
   chính nó). `return` trong try bên trong, khi try bên trong không có `finally`, đi tới
   `finally` gần nhất bao ngoài nó.
 
-**Xấp xỉ đã biết**: node `finally` không bị nhân bản theo từng đường vào, nên khi vừa có
-`return` sớm vừa có đường chảy tiếp, node cuối của finally có thể có 2 edge ra (tới `exit`
-và tới node sau try). Đây là over-approximation có chủ ý - thà báo thừa còn hơn báo thiếu.
-Analyzer giữ một nguồn sự thật duy nhất. **Cái giá phải trả và cách xử lý: xem §14.**
+### Đường thoát bị finally chặn phải giữ ĐÍCH THẬT
+
+Đi qua `finally` không được làm mất đích của đường nhảy. Analyzer ghi lại đích đó
+(`PendingExit` trong `builder.ts`) rồi nối lại từ các đầu hở của khối finally:
+
+| Đường nhảy | Sau khi finally chạy xong, đi tiếp tới |
+|---|---|
+| `return` | `finally` bao ngoài kế tiếp, hết thì `exit` |
+| `break [label]` | `finally` bao ngoài kế tiếp, hết thì node sau vòng lặp/switch đích |
+| `continue [label]` | `finally` bao ngoài kế tiếp, hết thì node `loop` đích |
+| exception | handler bao ngoài (`catch`/`finally` ngoài hơn), hết thì `exit`, nhãn `exception` |
+
+Việc này **đệ quy theo tầng**: `return` bên trong hai tầng `finally` lồng nhau đi
+`return → finally trong → finally ngoài → exit`. Không có cơ chế này thì đường nhảy bị nhập
+vào luồng hoàn thành bình thường của khối try và đích thật biến mất - `break outer` trong
+`try/finally` sẽ không bao giờ tới được code sau vòng lặp.
+
+Edge nối lại theo cách này chỉ tạo khi chưa có edge nào cùng cặp `(from, to)`, vì đích của
+đường thoát thường trùng với đích của luồng bình thường.
+
+### Khối try không hoàn thành bình thường
+
+Nếu MỌI đường ra khỏi thân try và thân catch đều là `return`/`throw`/`break`/`continue` thì
+bản thân câu `try` không hoàn thành bình thường: các đầu hở của khối `finally` chỉ nối tới
+đích của các đường thoát treo, KHÔNG nối tới statement sau khối try. Hệ quả: code sau một
+khối try luôn ném đúng là code chết (0 edge vào + warning `unreachable code`), thay vì bị
+báo là đến được.
+
+Đi kèm: node trong vùng code chết **không phát edge đi ra** - `return` trong code chết không
+được tạo đường tới `exit`, nếu không `exit` sẽ có thêm một edge vào không tồn tại trong
+thực thi thật.
+
+**Xấp xỉ đã biết**: node `finally` không bị nhân bản theo từng đường vào, nên node cuối của
+finally có thể có nhiều edge ra (tới `exit`, tới node sau try, về `loop`...). Tổ hợp
+(đường vào × đường ra) vì thế bị over-approximate: một `return` sớm sẽ "thấy" cả đường chảy
+tiếp sau khối try. Đây là over-approximation có chủ ý - thà báo thừa còn hơn báo thiếu -
+và analyzer giữ một nguồn sự thật duy nhất. **Cái giá phải trả và cách xử lý: xem §14.**
 
 ## 8. return / throw
 

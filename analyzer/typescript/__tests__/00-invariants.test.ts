@@ -36,7 +36,7 @@ function reachableFromEntry(graph: FlowGraph): Set<string> {
 
 // Bất biến áp dụng cho MỌI graph - chạy trên toàn bộ fixture catalog.
 describe.each(CATALOG)("invariants: $file :: $fn", (testCase) => {
-  const { file, fn, allowUnreachable = [] } = testCase;
+  const { file, fn, allowUnreachable = [], allowAcyclicLoop = false } = testCase;
   const graph = (): FlowGraph => analyzeFixture(file, cursorToken(testCase));
 
   it("gắn đúng metadata của hàm", () => {
@@ -121,16 +121,20 @@ describe.each(CATALOG)("invariants: $file :: $fn", (testCase) => {
     const back = backEdges(g);
     const cycles = back.map((e) => cycleNodes(g, e));
 
-    expect(
-      back.length,
-      `Số cạnh ngược (${back.length}) phải >= số vòng lặp (${loops.length})\n${dumpGraph(g)}`,
-    ).toBeGreaterThanOrEqual(countKind(g, "loop"));
-
-    for (const loopId of loops) {
+    // Thân vòng lặp không bao giờ hoàn thành bình thường thì KHÔNG có cạnh ngược, và đó
+    // là kết quả đúng (SEMANTICS §4). Chỉ những case khai báo tường minh được miễn.
+    if (!allowAcyclicLoop) {
       expect(
-        cycles.some((c) => c.has(loopId)),
-        `Vòng lặp ${loopId} không nằm trên chu trình nào - cạnh ngược đã mất\n${dumpGraph(g)}`,
-      ).toBe(true);
+        back.length,
+        `Số cạnh ngược (${back.length}) phải >= số vòng lặp (${loops.length})\n${dumpGraph(g)}`,
+      ).toBeGreaterThanOrEqual(countKind(g, "loop"));
+
+      for (const loopId of loops) {
+        expect(
+          cycles.some((c) => c.has(loopId)),
+          `Vòng lặp ${loopId} không nằm trên chu trình nào - cạnh ngược đã mất\n${dumpGraph(g)}`,
+        ).toBe(true);
+      }
     }
 
     for (const [i, cycle] of cycles.entries()) {
