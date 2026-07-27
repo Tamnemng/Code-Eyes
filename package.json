@@ -1,0 +1,22 @@
+{
+  "name": "codeflow-visualizer",
+  "version": "0.0.1",
+  "private": true,
+  "description": "VS Code extension: visualize the control flow graph of large legacy functions",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "typescript": "^5.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "vitest": "^3.0.0"
+  }
+}
