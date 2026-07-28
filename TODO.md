@@ -103,8 +103,7 @@ bày → DỪNG và báo, không nới assertion.
 
 ## 3b. Fanout có đáng không — GIAO THỨC ĐO, đăng ký TRƯỚC khi đo
 
-**Trạng thái: chưa đo.** Mặc định hiện tại: xem `FANOUT_ENABLED` trong
-`webview/model/finally-fanout.ts`.
+Mặc định hiện tại: xem `FANOUT_ENABLED` trong `webview/model/finally-fanout.ts`.
 
 §14.2 tự khai lý do của nó: *"một hàm có 6 điểm `return` trong `try` sẽ cho node `finally`
 7 cạnh vào và **2 cạnh ra** — một hub bậc cao"*. Đo trên golden thật thì **tiền đề vế
@@ -267,3 +266,36 @@ hai, độc lập, của cùng thuật toán. Trùng lặp có chủ ý.
 Ba case biên §4 nêu, phải có test khoá: loop nhiều cạnh ngược (`continue` nhắm header),
 `do-while` (đúng 1 cạnh ngược bất kể số `continue`), loop acyclic
 (`for { try { break outer } finally {} }` → 0 cạnh ngược, không được crash).
+
+---
+
+## 6. `graphKey` chưa phân biệt hai phiên bản source của cùng một hàm
+
+`webview/state.ts` hiện tạo key bằng `<filePath>#<functionName>`. Khi người dùng sửa nội
+dung nhưng vẫn ở cùng hàm, key không đổi. Analyzer cấp id tuần tự (`n_1`, `n_2`, ...), nên
+`n_7` của graph mới có thể là một node khác hoàn toàn so với `n_7` của graph cũ.
+
+`pruneCollapsedIds` chỉ bỏ id không còn tồn tại; nó không phát hiện trường hợp id vẫn tồn
+tại nhưng đã đổi nghĩa. Hệ quả: collapse/selection phục hồi từ `getState` có thể áp vào node
+khác sau khi source đổi.
+
+Extension host dùng riêng `{ document.uri, document.version }` để từ chối `revealNode` trên
+range cũ; việc đó bảo vệ editor nhưng không giải quyết state bên trong webview.
+
+Chỗ sửa đúng: thêm fingerprint ổn định của graph/source vào `graphKey` ở tầng webview state,
+không đổi `FlowGraph` schema chỉ để lưu trạng thái trình bày.
+
+---
+
+## 7. ELK vẫn block main thread trên graph lớn
+
+`elkjs/lib/elk.bundled.js` đang chạy layout trên main thread của webview. `view.ts` hoãn một
+`requestAnimationFrame` để trạng thái busy kịp hiện, nhưng sau đó UI vẫn đóng băng trong lúc
+ELK tính. Số đã đo: khoảng 0.65 giây ở 642 node đến 5.9–6.4 giây ở graph 714–1050 node.
+
+Cache và ba đường vẽ đã loại việc chạy lại ELK khi chỉ chọn node/đổi palette/đổi độ dày cạnh;
+phần block còn lại xảy ra khi graph, collapse, node scale hoặc font size làm layout đổi.
+
+Chỗ sửa đúng: chạy ELK trong Web Worker. Khi làm trong VS Code webview, extension host phải
+cấp URI worker nằm trong `localResourceRoots` và CSP phải cho phép đúng worker đó; không nới
+ra script/worker ngoài.

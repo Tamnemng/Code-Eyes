@@ -80,6 +80,8 @@ const view = createView(host, {
     // Không có editor trong harness - in ra để kiểm chứng đúng sourceId được gửi đi.
     console.log("revealNode", sourceId);
   },
+  onOpenCallee: (targetId) => console.log("openCallee", targetId),
+  onNavigateBack: () => console.log("navigateBack"),
   onStateChange: (state) => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState(state)));
   },

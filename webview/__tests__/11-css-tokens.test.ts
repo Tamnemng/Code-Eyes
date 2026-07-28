@@ -6,6 +6,17 @@ import { describe, expect, it } from "vitest";
 import { ALL_NODE_KINDS, styleForKind } from "../model/node-style";
 
 const css = readFileSync(path.join(import.meta.dirname, "..", "styles.css"), "utf8");
+const svgSource = readFileSync(path.join(import.meta.dirname, "..", "render", "svg.ts"), "utf8");
+const viewSource = readFileSync(path.join(import.meta.dirname, "..", "view.ts"), "utf8");
+
+describe("VS Code theme integration", () => {
+  it("dùng token của Secondary Side Bar và hỗ trợ light/dark theme", () => {
+    expect(css).toContain("--vscode-sideBar-background");
+    expect(css).toContain("--vscode-sideBar-foreground");
+    expect(css).toContain("--vscode-sideBar-border");
+    expect(css).toContain("color-scheme: light dark");
+  });
+});
 
 /** Tên biến bên trong `var(--x)` / `var(--x, fallback)`. */
 function varName(value: string): string | undefined {
@@ -23,6 +34,11 @@ describe("styles.css phải định nghĩa mọi token mà bảng style trỏ t�
 
   it.each(ALL_NODE_KINDS)("%s: có class accent .cf-node-%s", (kind) => {
     expect(css).toContain(`.cf-node-${kind}`);
+  });
+
+  it.each(ALL_NODE_KINDS)("%s: class gán fill, không cần inline style", (kind) => {
+    const fill = styleForKind(kind).fill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    expect(css).toMatch(new RegExp(`\\.cf-node-${kind}\\s*\\{[^}]*--cf-node-fill:\\s*${fill}`));
   });
 
   it.each(ALL_NODE_KINDS)("%s: biến accent của class đó cũng được khai báo", (kind) => {
@@ -61,8 +77,18 @@ describe("styles.css - các class mà svg.ts và detail.ts dựa vào", () => {
 
   it("fill của node khai báo trong CSS, KHÔNG qua presentation attribute", () => {
     // `var()` trong presentation attribute của SVG không đáng tin -> fill rơi về đen.
-    // `--cf-node-fill` do svg.ts đặt inline; khai báo `fill` phải nằm ở đây để :hover ghi đè được.
+    // `--cf-node-fill` do class theo kind đặt; khai báo `fill` ở đây để :hover ghi đè được.
     expect(css).toMatch(/\.cf-shape\s*\{[^}]*fill:\s*var\(--cf-node-fill/);
+  });
+
+  it("CSP nghiêm: renderer không đặt inline style hoặc style attribute", () => {
+    for (const [name, source] of [
+      ["svg.ts", svgSource],
+      ["view.ts", viewSource],
+    ] as const) {
+      expect(source, name).not.toMatch(/\.style\./);
+      expect(source, name).not.toMatch(/setAttribute\(\s*["']style["']/);
+    }
   });
 
   it("có trạng thái hover và selected rõ ràng", () => {

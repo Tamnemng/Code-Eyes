@@ -1,19 +1,24 @@
 // extension/extension.ts
-// Entry của extension host. SCAFFOLDING bước 1 - command đã đăng ký nhưng chưa chạy
-// analyzer. Phần thật (tìm hàm chứa con trỏ, panel, revealNode) vào đây ở bước 5.
+// Entry mỏng của extension host. Mọi lifecycle panel nằm trong `panel-controller.ts`;
+// logic thuần có test nằm trong `pure.ts` và `webview-html.ts`.
 
 import * as vscode from "vscode";
 
+import { CODEFLOW_VIEW_ID, PanelController } from "./panel-controller";
+
 export function activate(context: vscode.ExtensionContext): void {
+  const controller = new PanelController(context.extensionUri);
   context.subscriptions.push(
-    vscode.commands.registerCommand("codeflow.visualizeFlow", () => {
-      void vscode.window.showInformationMessage(
-        "CodeFlow: chưa cài đặt (scaffolding bước 1).",
-      );
+    controller,
+    vscode.window.registerWebviewViewProvider(CODEFLOW_VIEW_ID, controller, {
+      webviewOptions: { retainContextWhenHidden: false },
     }),
+    vscode.commands.registerCommand("codeflow.visualizeFlow", () =>
+      controller.visualizeActiveEditor(),
+    ),
   );
 }
 
 export function deactivate(): void {
-  // Không có tài nguyên nào ngoài context.subscriptions.
+  // VS Code dispose mọi resource đã đăng ký trong context.subscriptions.
 }

@@ -7,56 +7,56 @@
    chạy trong browser thường nên fallback là đường đi thật, không phải dự phòng chết). */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
   /* --- nền: gần đen, hơi lệch xanh, KHÔNG đen tuyệt đối --- */
-  --cf-bg: var(--vscode-editor-background, #12141a);
-  --cf-bg-raised: var(--vscode-editorWidget-background, #171a21);
+  --cf-bg: var(--vscode-sideBar-background, var(--vscode-editor-background, #12141a));
+  --cf-bg-raised: var(--vscode-sideBarSectionHeader-background, var(--vscode-editorWidget-background, #171a21));
   /* Mặt node tối hơn nền một bậc -> node trông lõm vào, viền 1px mang toàn bộ hình. */
-  --cf-surface: #0c0e13;
-  --cf-surface-hover: #151922;
+  --cf-surface: var(--vscode-editorWidget-background, #0c0e13);
+  --cf-surface-hover: var(--vscode-list-hoverBackground, #151922);
 
   /* --- chữ: xám sáng, không trắng tinh --- */
-  --cf-fg: var(--vscode-editor-foreground, #c6ccd8);
-  --cf-fg-strong: #e2e7ef;
+  --cf-fg: var(--vscode-sideBar-foreground, var(--vscode-editor-foreground, #c6ccd8));
+  --cf-fg-strong: var(--vscode-foreground, #e2e7ef);
   --cf-muted: var(--vscode-descriptionForeground, #79828f);
 
-  --cf-line: #262c37;
-  --cf-line-strong: #39414f;
+  --cf-line: var(--vscode-sideBar-border, var(--vscode-panel-border, #262c37));
+  --cf-line-strong: var(--vscode-editorWidget-border, #39414f);
   --cf-focus: var(--vscode-focusBorder, #5b9dd9);
   --cf-danger: var(--vscode-errorForeground, #d97070);
 
   /* --- accent theo kind: CHỈ dùng cho viền và mũi tên --- */
   --cf-accent-entry: var(--vscode-charts-green, #6fbf8f);
   --cf-accent-exit: var(--vscode-charts-purple, #a08ad0);
-  --cf-accent-statement: #4a5361;
+  --cf-accent-statement: var(--vscode-charts-foreground, #4a5361);
   --cf-accent-condition: var(--vscode-charts-blue, #6fa8dc);
   --cf-accent-loop: var(--vscode-charts-yellow, #d8b366);
-  --cf-accent-switch-case: #7fb3d5;
-  --cf-accent-try: #8a94a6;
+  --cf-accent-switch-case: var(--vscode-charts-blue, #7fb3d5);
+  --cf-accent-try: var(--vscode-charts-purple, #8a94a6);
   --cf-accent-catch: var(--vscode-charts-orange, #d9925f);
-  --cf-accent-finally: #c98a5e;
-  --cf-accent-return: #9d8ec9;
+  --cf-accent-finally: var(--vscode-charts-orange, #c98a5e);
+  --cf-accent-return: var(--vscode-charts-purple, #9d8ec9);
   --cf-accent-throw: var(--vscode-charts-red, #d97070);
-  --cf-accent-break: #c97b7b;
-  --cf-accent-continue: #c9b06b;
-  --cf-accent-call: #79a9c9;
+  --cf-accent-break: var(--vscode-charts-red, #c97b7b);
+  --cf-accent-continue: var(--vscode-charts-yellow, #c9b06b);
+  --cf-accent-call: var(--vscode-charts-blue, #79a9c9);
 
   /* --- fill theo kind: tint rất nhẹ trên --cf-surface, đủ để nhận ra nhóm --- */
-  --cf-fill-entry: #0b1310;
-  --cf-fill-exit: #100e18;
+  --cf-fill-entry: color-mix(in srgb, var(--cf-accent-entry) 8%, var(--cf-surface));
+  --cf-fill-exit: color-mix(in srgb, var(--cf-accent-exit) 8%, var(--cf-surface));
   --cf-fill-statement: var(--cf-surface);
-  --cf-fill-condition: #0b1017;
-  --cf-fill-loop: #12100a;
-  --cf-fill-switch-case: #0b1016;
-  --cf-fill-try: #0d0f14;
-  --cf-fill-catch: #140f0b;
-  --cf-fill-finally: #130f0c;
-  --cf-fill-return: #100e16;
-  --cf-fill-throw: #150c0c;
-  --cf-fill-break: #140d0d;
-  --cf-fill-continue: #12100b;
-  --cf-fill-call: #0b1015;
+  --cf-fill-condition: color-mix(in srgb, var(--cf-accent-condition) 8%, var(--cf-surface));
+  --cf-fill-loop: color-mix(in srgb, var(--cf-accent-loop) 8%, var(--cf-surface));
+  --cf-fill-switch-case: color-mix(in srgb, var(--cf-accent-switch-case) 8%, var(--cf-surface));
+  --cf-fill-try: color-mix(in srgb, var(--cf-accent-try) 8%, var(--cf-surface));
+  --cf-fill-catch: color-mix(in srgb, var(--cf-accent-catch) 8%, var(--cf-surface));
+  --cf-fill-finally: color-mix(in srgb, var(--cf-accent-finally) 8%, var(--cf-surface));
+  --cf-fill-return: color-mix(in srgb, var(--cf-accent-return) 8%, var(--cf-surface));
+  --cf-fill-throw: color-mix(in srgb, var(--cf-accent-throw) 8%, var(--cf-surface));
+  --cf-fill-break: color-mix(in srgb, var(--cf-accent-break) 8%, var(--cf-surface));
+  --cf-fill-continue: color-mix(in srgb, var(--cf-accent-continue) 8%, var(--cf-surface));
+  --cf-fill-call: color-mix(in srgb, var(--cf-accent-call) 8%, var(--cf-surface));
 
   /* --- typography: mono cho code, sans cho chrome. Ba cỡ, hết. --- */
   --cf-font-mono: var(--vscode-editor-font-family, ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace);
@@ -67,8 +67,8 @@
 
   --cf-radius: 6px;
 
-  /* Do `settings.ts` điều khiển lúc chạy (view.ts đặt lại trên phần tử canvas / root).
-     Khai báo ở đây để có giá trị mặc định khi chưa ai đặt. */
+  /* Do `settings.ts` điều khiển qua stylesheet nonce-bearing `#cf-runtime-settings`.
+     Khai báo ở đây để có giá trị mặc định trước khi stylesheet đó được cập nhật. */
   --cf-text-node: 12px;
   --cf-edge-width: 1.1;
 }
@@ -127,10 +127,12 @@ body {
 
 .cf-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  width: 100%;
+  gap: 8px;
   flex: 0 0 auto;
-  padding: 8px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--cf-line);
   background: var(--cf-bg-raised);
 }
@@ -217,23 +219,114 @@ body {
   cursor: grabbing;
 }
 
+.cf-navigation {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 27px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--cf-line);
+  background: var(--cf-bg-raised);
+}
+
+.cf-breadcrumbs {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cf-muted);
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-back {
+  width: 28px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  font-size: 16px !important;
+}
+
 /* ---------- panel chi tiết ---------- */
 
+.cf-detail-resizer {
+  flex: 0 0 7px;
+  cursor: col-resize;
+  position: relative;
+  background: transparent;
+}
+
+.cf-detail-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+  background: var(--cf-line);
+}
+
+.cf-detail-resizer:hover::after,
+.cf-detail-resizer:focus-visible::after,
+.cf-resizing-detail .cf-detail-resizer::after {
+  background: var(--cf-focus);
+}
+
+.cf-detail-resizer:focus-visible {
+  outline: none;
+}
+
+.cf-detail-resizer[hidden],
+.cf-detail[hidden] {
+  display: none;
+}
+
 .cf-detail {
-  flex: 0 0 340px;
+  flex: 0 0 var(--cf-detail-width, 260px);
+  width: var(--cf-detail-width, 260px);
+  min-width: 180px;
+  max-width: 55%;
   border-left: 1px solid var(--cf-line);
   background: var(--cf-bg-raised);
   padding: 14px 16px;
   overflow: auto;
 }
 
+.cf-detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .cf-detail h2 {
+  flex: 1 1 auto;
   font-family: var(--cf-font-mono);
   font-size: var(--cf-text-lg);
   font-weight: 600;
   color: var(--cf-fg-strong);
-  margin: 0 0 12px;
+  margin: 0;
   word-break: break-word;
+}
+
+.cf-detail-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--cf-muted);
+  background: transparent;
+  font: 18px/20px var(--cf-font-sans);
+  cursor: pointer;
+}
+
+.cf-detail-close:hover,
+.cf-detail-close:focus-visible {
+  color: var(--cf-fg-strong);
+  border-color: var(--cf-line-strong);
+  outline: none;
 }
 
 .cf-detail-row {
@@ -309,6 +402,35 @@ body {
   background: color-mix(in srgb, var(--cf-focus) 18%, transparent);
 }
 
+.cf-callee-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 0 10px;
+}
+
+.cf-open-callee {
+  width: 100%;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: var(--cf-text-sm);
+  color: var(--cf-fg-strong);
+  background: color-mix(in srgb, var(--cf-focus) 10%, transparent);
+  border: 1px solid var(--cf-focus);
+  border-radius: 4px;
+  padding: 6px 10px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cf-open-callee:hover,
+.cf-open-callee:focus-visible {
+  background: color-mix(in srgb, var(--cf-focus) 20%, transparent);
+  outline: none;
+}
+
 /* ---------- graph: cạnh ---------- */
 
 .cf-edge {
@@ -377,7 +499,7 @@ body {
 }
 
 /* `fill` khai báo TRONG CSS, không phải presentation attribute: `var()` trong attribute của
-   SVG không đáng tin (rơi về đen). `--cf-node-fill` do svg.ts đặt inline theo kind. */
+   SVG không đáng tin (rơi về đen). Class theo kind gán token, không cần inline style. */
 .cf-node .cf-shape {
   fill: var(--cf-node-fill, var(--cf-surface));
   stroke: var(--cf-node-accent, var(--cf-line-strong));
@@ -408,21 +530,21 @@ body {
   opacity: 0.45;
 }
 
-/* accent theo kind - CHỈ đổi màu viền, không tô kín thân node */
-.cf-node-entry { --cf-node-accent: var(--cf-accent-entry); }
-.cf-node-exit { --cf-node-accent: var(--cf-accent-exit); }
-.cf-node-statement { --cf-node-accent: var(--cf-accent-statement); }
-.cf-node-condition { --cf-node-accent: var(--cf-accent-condition); }
-.cf-node-loop { --cf-node-accent: var(--cf-accent-loop); }
-.cf-node-switch-case { --cf-node-accent: var(--cf-accent-switch-case); }
-.cf-node-try { --cf-node-accent: var(--cf-accent-try); }
-.cf-node-catch { --cf-node-accent: var(--cf-accent-catch); }
-.cf-node-finally { --cf-node-accent: var(--cf-accent-finally); }
-.cf-node-return { --cf-node-accent: var(--cf-accent-return); }
-.cf-node-throw { --cf-node-accent: var(--cf-accent-throw); }
-.cf-node-break { --cf-node-accent: var(--cf-accent-break); }
-.cf-node-continue { --cf-node-accent: var(--cf-accent-continue); }
-.cf-node-call { --cf-node-accent: var(--cf-accent-call); }
+/* Accent + fill theo kind. Class giữ CSP nghiêm: không cần `element.style`. */
+.cf-node-entry { --cf-node-accent: var(--cf-accent-entry); --cf-node-fill: var(--cf-fill-entry); }
+.cf-node-exit { --cf-node-accent: var(--cf-accent-exit); --cf-node-fill: var(--cf-fill-exit); }
+.cf-node-statement { --cf-node-accent: var(--cf-accent-statement); --cf-node-fill: var(--cf-fill-statement); }
+.cf-node-condition { --cf-node-accent: var(--cf-accent-condition); --cf-node-fill: var(--cf-fill-condition); }
+.cf-node-loop { --cf-node-accent: var(--cf-accent-loop); --cf-node-fill: var(--cf-fill-loop); }
+.cf-node-switch-case { --cf-node-accent: var(--cf-accent-switch-case); --cf-node-fill: var(--cf-fill-switch-case); }
+.cf-node-try { --cf-node-accent: var(--cf-accent-try); --cf-node-fill: var(--cf-fill-try); }
+.cf-node-catch { --cf-node-accent: var(--cf-accent-catch); --cf-node-fill: var(--cf-fill-catch); }
+.cf-node-finally { --cf-node-accent: var(--cf-accent-finally); --cf-node-fill: var(--cf-fill-finally); }
+.cf-node-return { --cf-node-accent: var(--cf-accent-return); --cf-node-fill: var(--cf-fill-return); }
+.cf-node-throw { --cf-node-accent: var(--cf-accent-throw); --cf-node-fill: var(--cf-fill-throw); }
+.cf-node-break { --cf-node-accent: var(--cf-accent-break); --cf-node-fill: var(--cf-fill-break); }
+.cf-node-continue { --cf-node-accent: var(--cf-accent-continue); --cf-node-fill: var(--cf-fill-continue); }
+.cf-node-call { --cf-node-accent: var(--cf-accent-call); --cf-node-fill: var(--cf-fill-call); }
 
 /* BA mức viền (SEMANTICS §14.3), không phải hai:
    - solid          : certain, analyzer hiểu trọn

@@ -16,9 +16,29 @@ import type { FlowGraph } from "./types";
  */
 export type AnalyzeErrorCode = "NO_FUNCTION_AT_CURSOR" | "CURSOR_OUT_OF_RANGE" | "UNKNOWN";
 
+/** Một lời gọi nằm trong node graph hiện tại và có thể được host resolve sang definition thật. */
+export interface CalleeLink {
+  /** Id opaque do host tạo; webview chỉ gửi lại, không tự suy ra vị trí source. */
+  targetId: string;
+  /** Id node GỐC chứa lời gọi, dùng để hiện nút trong panel chi tiết đúng node. */
+  nodeId: string;
+  label: string;
+}
+
+/** Trạng thái stack điều hướng graph do host sở hữu. */
+export interface GraphNavigation {
+  breadcrumbs: string[];
+  canGoBack: boolean;
+}
+
 /** Host -> webview. */
 export type HostToWebview =
-  | { type: "graph"; graph: FlowGraph }
+  | {
+      type: "graph";
+      graph: FlowGraph;
+      callees: CalleeLink[];
+      navigation: GraphNavigation;
+    }
   | { type: "analyzeError"; code: AnalyzeErrorCode; message: string };
 
 /** Webview -> host. */
@@ -38,4 +58,8 @@ export type WebviewToHost =
    * id đó không tồn tại ngoài webview. Host tra `range` từ `FlowGraph` nó đang giữ, nên
    * range chỉ có một nguồn sự thật và webview không gửi toạ độ ngược lại.
    */
-  | { type: "revealNode"; nodeId: string };
+  | { type: "revealNode"; nodeId: string }
+  /** Resolve definition của call-site này rồi chuyển graph sang hàm đích. */
+  | { type: "openCallee"; targetId: string }
+  /** Quay lại frame graph trước đó trong stack do extension host giữ. */
+  | { type: "navigateBack" };

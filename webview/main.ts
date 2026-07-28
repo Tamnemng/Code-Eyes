@@ -1,11 +1,14 @@
-// webview/main.ts
-// Entry của webview thật. Chỉ làm ba việc: bắt tay `ready`, thu hẹp message đến, và nối
-// `createView` với API host. Mọi thứ khác nằm trong `view.ts` - dùng chung với dev harness.
+// Entry webview thật: handshake, validate message runtime và nối view với extension host.
 
 import "./styles.css";
 
+import type {
+  AnalyzeErrorCode,
+  CalleeLink,
+  GraphNavigation,
+  HostToWebview,
+} from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
-import type { AnalyzeErrorCode, HostToWebview } from "../shared/protocol";
 import { acquireHostApi } from "./host-api";
 import { restoreState, serializeState } from "./state";
 import { createView } from "./view";
@@ -20,16 +23,55 @@ const ERROR_CODES: readonly AnalyzeErrorCode[] = [
   "UNKNOWN",
 ];
 
-/**
- * Thu hẹp message thô. `shared/protocol.ts` cố tình chỉ có KIỂU, nên việc kiểm là của bên
- * nhận - và ở đây `event.data` là `unknown` thật sự: cast thẳng sang `HostToWebview` là tin
- * một thứ không ai kiểm.
- */
+function parseCallees(value: unknown): CalleeLink[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const result: CalleeLink[] = [];
+  for (const item of value) {
+    if (
+      !isRecord(item) ||
+      typeof item["targetId"] !== "string" ||
+      typeof item["nodeId"] !== "string" ||
+      typeof item["label"] !== "string"
+    ) {
+      return undefined;
+    }
+    result.push({
+      targetId: item["targetId"],
+      nodeId: item["nodeId"],
+      label: item["label"],
+    });
+  }
+  return result;
+}
+
+function parseNavigation(value: unknown): GraphNavigation | undefined {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value["breadcrumbs"]) ||
+    !value["breadcrumbs"].every((item) => typeof item === "string") ||
+    typeof value["canGoBack"] !== "boolean"
+  ) {
+    return undefined;
+  }
+  return {
+    breadcrumbs: value["breadcrumbs"],
+    canGoBack: value["canGoBack"],
+  };
+}
+
+/** `event.data` là unknown thật sự; chỉ graph do analyzer sinh được tin sau khi kiểm envelope. */
 function parseMessage(data: unknown): HostToWebview | undefined {
   if (!isRecord(data)) return undefined;
   if (data["type"] === "graph" && isRecord(data["graph"])) {
-    // `graph` do host gửi, mà host vừa lấy trực tiếp từ analyzer - tin được ở mức này.
-    return { type: "graph", graph: data["graph"] as unknown as FlowGraph };
+    const callees = parseCallees(data["callees"]);
+    const navigation = parseNavigation(data["navigation"]);
+    if (callees === undefined || navigation === undefined) return undefined;
+    return {
+      type: "graph",
+      graph: data["graph"] as unknown as FlowGraph,
+      callees,
+      navigation,
+    };
   }
   if (data["type"] === "analyzeError") {
     const code = data["code"];
@@ -49,16 +91,23 @@ const root = document.getElementById("root") ?? document.body;
 const view = createView(root, {
   restored: restoreState(host.getState()),
   onReveal: (nodeId) => host.postMessage({ type: "revealNode", nodeId }),
+  onOpenCallee: (targetId) => host.postMessage({ type: "openCallee", targetId }),
+  onNavigateBack: () => host.postMessage({ type: "navigateBack" }),
   onStateChange: (state) => host.setState(serializeState(state)),
 });
 
 window.addEventListener("message", (event: MessageEvent<unknown>) => {
   const message = parseMessage(event.data);
   if (message === undefined) return;
-  if (message.type === "graph") view.setGraph(message.graph);
-  else view.showError(message.message);
+  if (message.type === "graph") {
+    view.setGraph(message.graph, {
+      callees: message.callees,
+      navigation: message.navigation,
+    });
+  } else {
+    view.showError(message.message);
+  }
 });
 
-// Host CHỜ message này rồi mới gửi graph. Mỗi lần tab ẩn rồi hiện lại là một `ready` mới -
-// webview bị reload (không dùng `retainContextWhenHidden`), host resend graph đang giữ.
+// Host chỉ gửi graph sau handshake này; script reload thì ready mới khiến host resend frame hiện tại.
 host.postMessage({ type: "ready" });

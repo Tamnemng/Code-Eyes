@@ -12,7 +12,9 @@
 //   3. đổi độ dày cạnh / bảng màu              -> đổi CSS variable           (gần như free)
 // Trước đây mọi thứ đi đường 1: bấm chọn một node trên hàm 714 node = chạy lại ELK 6.4 giây.
 
+import type { CalleeLink, GraphNavigation } from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
+import { DEFAULT_DETAIL_WIDTH, detailWidthFromPointer } from "./detail-pane";
 import type { Layout } from "./layout/run-elk";
 import { runLayout } from "./layout/run-elk";
 import { markBackEdges } from "./model/back-edges";
@@ -33,6 +35,8 @@ import { graphKeyOf, initialState } from "./state";
 export interface ViewOptions {
   /** Người dùng muốn nhảy tới node trong editor gốc. Nhận `sourceId`. */
   onReveal: (sourceId: string) => void;
+  onOpenCallee: (targetId: string) => void;
+  onNavigateBack: () => void;
   /** Trạng thái đổi - bên gọi đem đi `setState`. */
   onStateChange: (state: ViewState) => void;
   /** Trạng thái phục hồi từ `getState`, nếu có. */
@@ -40,7 +44,10 @@ export interface ViewOptions {
 }
 
 export interface View {
-  setGraph: (graph: FlowGraph) => void;
+  setGraph: (
+    graph: FlowGraph,
+    context?: { callees: readonly CalleeLink[]; navigation: GraphNavigation },
+  ) => void;
   showError: (message: string) => void;
 }
 
@@ -87,26 +94,58 @@ function slider(
 export function createView(root: HTMLElement, options: ViewOptions): View {
   root.replaceChildren();
   root.classList.add("cf-root");
+  const runtimeStyle = document.getElementById("cf-runtime-settings");
+  if (!(runtimeStyle instanceof HTMLStyleElement)) {
+    throw new Error("thiếu #cf-runtime-settings để áp dụng settings dưới CSP nghiêm");
+  }
 
   const toolbar = document.createElement("header");
   toolbar.className = "cf-toolbar";
+  const navigation = document.createElement("nav");
+  navigation.className = "cf-navigation";
+  const backButton = button("←", "cf-back");
+  backButton.hidden = true;
+  backButton.title = "Quay lại graph trước";
+  backButton.setAttribute("aria-label", "Quay lại graph trước");
+  backButton.addEventListener("click", options.onNavigateBack);
+  const breadcrumbs = document.createElement("span");
+  breadcrumbs.className = "cf-breadcrumbs";
+  navigation.append(breadcrumbs);
   const heading = document.createElement("span");
   heading.className = "cf-title";
+  heading.textContent = "CodeFlow";
   const stats = document.createElement("span");
   stats.className = "cf-stats";
-  const expandButton = button("Mở hết");
-  const collapseButton = button("Thu gọn mặc định");
-  const resetButton = button("Reset view");
+  stats.textContent = "Đặt con trỏ trong một hàm rồi chạy Visualize Control Flow.";
+  const expandButton = button("⊞");
+  expandButton.title = "Mở hết";
+  expandButton.setAttribute("aria-label", "Mở hết");
+  const collapseButton = button("⊟");
+  collapseButton.title = "Thu gọn mặc định";
+  collapseButton.setAttribute("aria-label", "Thu gọn mặc định");
+  const resetButton = button("⟳");
+  resetButton.title = "Reset view";
+  resetButton.setAttribute("aria-label", "Reset view");
 
   const settingsBox = document.createElement("details");
   settingsBox.className = "cf-settings";
   const settingsSummary = document.createElement("summary");
-  settingsSummary.textContent = "Hiển thị";
+  settingsSummary.textContent = "⚙";
   const settingsBody = document.createElement("div");
+  settingsSummary.title = "Tuỳ chỉnh hiển thị";
+  settingsSummary.setAttribute("aria-label", "Tuỳ chỉnh hiển thị");
   settingsBody.className = "cf-settings-body";
   settingsBox.append(settingsSummary, settingsBody);
 
-  toolbar.append(heading, stats, settingsBox, expandButton, collapseButton, resetButton);
+  toolbar.append(
+    backButton,
+    heading,
+    stats,
+    settingsBox,
+    expandButton,
+    collapseButton,
+    resetButton,
+  );
 
   const warnings = document.createElement("details");
   warnings.className = "cf-warnings";
@@ -118,11 +157,19 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   canvas.setAttribute("class", "cf-canvas");
   const surface = document.createElementNS(SVG_NS, "g");
   canvas.append(surface);
+  const detailResizer = document.createElement("div");
+  detailResizer.className = "cf-detail-resizer";
+  detailResizer.setAttribute("role", "separator");
+  detailResizer.setAttribute("aria-orientation", "vertical");
+  detailResizer.setAttribute("aria-label", "Đổi chiều rộng chi tiết node");
+  detailResizer.tabIndex = 0;
+  detailResizer.hidden = true;
   const detail = document.createElement("aside");
   detail.className = "cf-detail";
-  body.append(canvas, detail);
+  detail.hidden = true;
+  body.append(canvas, detailResizer, detail);
 
-  root.append(toolbar, warnings, body);
+  root.append(toolbar, warnings, body, navigation);
 
   let state: ViewState = options.restored ?? initialState();
   /** Graph sau fanout + back edge, TRƯỚC collapse. Nguồn để collapse lại. */
@@ -133,6 +180,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   /** Layout đã tính + khoá mô tả nó được tính từ đâu, để không chạy ELK lại vô ích. */
   let cachedLayout: Layout | undefined;
   let cachedKey = "";
+  let detailWidth = DEFAULT_DETAIL_WIDTH;
+  let calleeLinks: readonly CalleeLink[] = [];
 
   const persist = (): void => options.onStateChange(state);
 
@@ -147,9 +196,47 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
 
   /** Đường 3: chỉ CSS variable, không vẽ lại gì. */
   const applyCssSettings = (): void => {
-    canvas.style.setProperty("--cf-edge-width", String(state.settings.edgeWidth));
-    canvas.style.setProperty("--cf-text-node", `${state.settings.fontSize}px`);
+    // Stylesheet này mang nonce trong extension host. Sửa textContent không tạo style
+    // attribute, nên vẫn tuân CSP không `unsafe-inline`.
+    runtimeStyle.textContent =
+      `.cf-root { --cf-edge-width: ${state.settings.edgeWidth}; ` +
+      `--cf-text-node: ${state.settings.fontSize}px; ` +
+      `--cf-detail-width: ${detailWidth}px; }`;
     root.dataset["cfPalette"] = state.settings.palette;
+  };
+
+  const fitCachedLayout = (): void => {
+    const layout = cachedLayout;
+    if (layout === undefined) return;
+    requestAnimationFrame(() => interactions?.fit(layout.width, layout.height));
+  };
+
+  const closeDetail = (): void => {
+    if (state.selectedSourceId === undefined) return;
+    state = { ...state, selectedSourceId: undefined };
+    persist();
+    applySelection();
+  };
+
+  const paintDetail = (refitWhenVisibilityChanges: boolean): void => {
+    const visible =
+      base !== undefined &&
+      state.selectedSourceId !== undefined &&
+      base.nodes.some((node) => node.sourceId === state.selectedSourceId);
+    const visibilityChanged = detail.hidden === visible;
+    detail.hidden = !visible;
+    detailResizer.hidden = !visible;
+    if (visible && base !== undefined) {
+      renderDetail(detail, base, state.selectedSourceId, {
+        onJump: options.onReveal,
+        onClose: closeDetail,
+        callees: calleeLinks,
+        onOpenCallee: options.onOpenCallee,
+      });
+    } else {
+      detail.replaceChildren();
+    }
+    if (visibilityChanged && refitWhenVisibilityChanges) fitCachedLayout();
   };
 
   /** Đường 2: đổi highlight tại chỗ. Không chạy ELK, không dựng lại DOM. */
@@ -173,9 +260,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         selectedDisplayIds.has(from) || selectedDisplayIds.has(to),
       );
     }
-    if (base !== undefined) {
-      renderDetail(detail, base, state.selectedSourceId, { onJump: options.onReveal });
-    }
+    paintDetail(true);
   };
 
   /** Đường 1: chạy ELK (nếu cần) rồi dựng lại SVG. */
@@ -191,7 +276,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       (visible === base.nodes.length ? "" : ` · hiện ${visible}/${base.nodes.length}`) +
       (visible > RENDER_GUARD ? " · graph lớn, layout có thể chậm" : "");
 
-    renderDetail(detail, base, state.selectedSourceId, { onJump: options.onReveal });
+    paintDetail(false);
 
     const paint = (layout: Layout): void => {
       if (current !== generation) return; // Lượt cũ về muộn - bỏ, không vẽ đè lượt mới.
@@ -309,6 +394,36 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     },
   });
 
+  let resizingDetail = false;
+  const resizeDetailAt = (pointerX: number): void => {
+    const rect = body.getBoundingClientRect();
+    detailWidth = detailWidthFromPointer(rect.left, rect.right, pointerX);
+    applyCssSettings();
+  };
+  detailResizer.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    resizingDetail = true;
+    root.classList.add("cf-resizing-detail");
+    event.preventDefault();
+  });
+  window.addEventListener("pointermove", (event) => {
+    if (resizingDetail) resizeDetailAt(event.clientX);
+  });
+  window.addEventListener("pointerup", () => {
+    if (!resizingDetail) return;
+    resizingDetail = false;
+    root.classList.remove("cf-resizing-detail");
+    fitCachedLayout();
+  });
+  detailResizer.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    const delta = event.key === "ArrowLeft" ? 20 : -20;
+    const rect = body.getBoundingClientRect();
+    resizeDetailAt(rect.right - detailWidth - delta);
+    fitCachedLayout();
+    event.preventDefault();
+  });
+
   resetButton.addEventListener("click", () => {
     if (cachedLayout !== undefined) interactions?.fit(cachedLayout.width, cachedLayout.height);
   });
@@ -327,7 +442,14 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   applyCssSettings();
 
   return {
-    setGraph: (next) => {
+    setGraph: (next, context) => {
+      calleeLinks = context?.callees ?? [];
+      const graphNavigation = context?.navigation ?? {
+        breadcrumbs: [next.functionName],
+        canGoBack: false,
+      };
+      backButton.hidden = !graphNavigation.canGoBack;
+      breadcrumbs.textContent = graphNavigation.breadcrumbs.join(" → ");
       const key = graphKeyOf(next.filePath, next.functionName);
       const display = toDisplayGraph(next);
       base = markBackEdges(FANOUT_ENABLED ? fanoutFinallyRegions(display) : display);
@@ -353,8 +475,6 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       persist();
       cachedLayout = undefined;
       cachedKey = "";
-
-      heading.textContent = next.functionName;
 
       warnings.replaceChildren();
       const notes = [...next.warnings];

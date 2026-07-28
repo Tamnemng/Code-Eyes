@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+
+import type { FlowGraph } from "../../shared/types";
+import { collectCallSites } from "../call-sites";
+
+const source = `class Controller {
+  receiveByExternReceipt(body: ReceiveByExternReceiptDto) {
+    try {
+      return this.receiveService.receiveByExternReceipt(body);
+    } catch (error) {
+      sharedService.sendSlackDefault(JSON.stringify(error), "ERROR receive");
+      throw error;
+    }
+  }
+}`;
+
+const graph: FlowGraph = {
+  functionName: "Controller.receiveByExternReceipt",
+  filePath: "controller.ts",
+  language: "typescript",
+  warnings: [],
+  nodes: [
+    {
+      id: "n_return",
+      kind: "return",
+      label: "return this.receiveService.receiveByExternReceipt(body)",
+      code: "return this.receiveService.receiveByExternReceipt(body);",
+      range: { startLine: 4, startCol: 6, endLine: 4, endCol: 62 },
+      confidence: "certain",
+    },
+    {
+      id: "n_catch",
+      kind: "statement",
+      label: "sharedService.sendSlackDefault(...)",
+      code: 'sharedService.sendSlackDefault(JSON.stringify(error), "ERROR receive");',
+      range: { startLine: 6, startCol: 6, endLine: 6, endCol: 78 },
+      confidence: "certain",
+    },
+  ],
+  edges: [],
+};
+
+describe("collectCallSites", () => {
+  it("gắn method cross-file vào đúng return node và giữ cột của tên method", () => {
+    const sites = collectCallSites("controller.ts", source, graph);
+    expect(sites).toContainEqual({
+      targetId: "n_return:call:0",
+      nodeId: "n_return",
+      label: "receiveByExternReceipt",
+      line: 4,
+      column: 33,
+    });
+  });
+
+  it("mỗi call lồng nhau có targetId riêng và node id của graph gốc", () => {
+    const sites = collectCallSites("controller.ts", source, graph);
+    expect(sites.map(({ targetId, nodeId, label }) => ({ targetId, nodeId, label }))).toEqual([
+      {
+        targetId: "n_return:call:0",
+        nodeId: "n_return",
+        label: "receiveByExternReceipt",
+      },
+      { targetId: "n_catch:call:1", nodeId: "n_catch", label: "sendSlackDefault" },
+      { targetId: "n_catch:call:2", nodeId: "n_catch", label: "stringify" },
+    ]);
+  });
+});

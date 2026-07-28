@@ -27,6 +27,8 @@
       #view { flex: 1 1 auto; min-height: 0; }
       body { display: flex; flex-direction: column; height: 100vh; }
     </style>
+    <!-- Webview thật cấp nonce cho stylesheet này; harness không có CSP nhưng dùng cùng id. -->
+    <style id="cf-runtime-settings"></style>
   </head>
   <body>
     <div class="cf-dev-bar">

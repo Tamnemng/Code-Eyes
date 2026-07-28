@@ -74,13 +74,6 @@ export function renderGraph(
   const root = surface.ownerSVGElement;
   if (root !== null && root.querySelector("defs") === null) root.prepend(buildDefs());
 
-  // Cỡ chữ và độ dày cạnh đi qua CSS custom property, không phải attribute từng phần tử:
-  // đổi settings chỉ cần đặt lại hai biến này, không phải vẽ lại để sửa từng node.
-  if (root !== null) {
-    root.style.setProperty("--cf-text-node", `${options.settings.fontSize}px`);
-    root.style.setProperty("--cf-edge-width", String(options.settings.edgeWidth));
-  }
-
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
   // Id hiển thị của node đang chọn - một sourceId có thể có nhiều bản sao (fanout §14.2),
   // và cạnh của MỌI bản sao đều phải sáng lên cùng lúc.
@@ -176,11 +169,8 @@ function buildNode(
     role: "button",
   });
 
-  // KHÔNG đặt `fill="var(--cf-fill-…)"` như presentation attribute: `var()` trong
-  // presentation attribute của SVG không được hỗ trợ đáng tin, giá trị thành không hợp lệ và
-  // fill rơi về ĐEN mặc định. Đẩy qua custom property inline, còn khai báo `fill` để CSS lo -
-  // như vậy `:hover` vẫn ghi đè được (inline `style.fill` thì hover sẽ thua).
-  group.style.setProperty("--cf-node-fill", style.fill);
+  // Fill đi qua class `cf-node-<kind>` và CSS. Không dùng presentation attribute vì `var()`
+  // trong SVG attribute không đáng tin, cũng không dùng inline style vì CSP host cấm nó.
   const outline = element("path", { d: geometry.outline, class: "cf-shape" });
   group.append(outline);
   for (const accent of geometry.accents) {
