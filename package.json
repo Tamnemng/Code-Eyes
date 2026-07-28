@@ -60,6 +60,7 @@
     "measure:fanout": "node scripts/measure-fanout.mjs",
     "dev": "vite webview/dev",
     "measure:legacy": "node scripts/measure-legacy.mjs",
+    "measure:filter": "node scripts/measure-filter.mjs",
     "import:local": "node scripts/import-local.mjs"
   },
   "dependencies": {

@@ -1,0 +1,188 @@
+{
+  "functionName": "cyclic",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: cyclic",
+      "code": "export function cyclic(clientCode: string, running: boolean): string {",
+      "range": {
+        "startLine": 85,
+        "startCol": 0,
+        "endLine": 85,
+        "endCol": 70
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 95,
+        "startCol": 1,
+        "endLine": 95,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "loop",
+      "label": "while (running)",
+      "code": "while (running)",
+      "range": {
+        "startLine": 86,
+        "startCol": 2,
+        "endLine": 86,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "condition",
+      "label": "clientCode === \"A\"",
+      "code": "clientCode === \"A\"",
+      "range": {
+        "startLine": 87,
+        "startCol": 8,
+        "endLine": 87,
+        "endCol": 26
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode === \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_5",
+      "kind": "statement",
+      "label": "work(\"A\");",
+      "code": "work(\"A\");",
+      "range": {
+        "startLine": 88,
+        "startCol": 6,
+        "endLine": 88,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "statement",
+      "label": "work(\"other\");",
+      "code": "work(\"other\");",
+      "range": {
+        "startLine": 90,
+        "startCol": 6,
+        "endLine": 90,
+        "endCol": 20
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_7",
+      "kind": "condition",
+      "label": "guard()",
+      "code": "guard()",
+      "range": {
+        "startLine": 92,
+        "startCol": 8,
+        "endLine": 92,
+        "endCol": 15
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "guard()"
+      }
+    },
+    {
+      "id": "n_8",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 92,
+        "startCol": 17,
+        "endLine": 92,
+        "endCol": 23
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_9",
+      "kind": "return",
+      "label": "return \"done\";",
+      "code": "return \"done\";",
+      "range": {
+        "startLine": 94,
+        "startCol": 2,
+        "endLine": 94,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_6",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_7"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_8",
+      "label": "true"
+    },
+    {
+      "from": "n_7",
+      "to": "n_3",
+      "label": "false"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9"
+    },
+    {
+      "from": "n_3",
+      "to": "n_9",
+      "label": "false"
+    },
+    {
+      "from": "n_9",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

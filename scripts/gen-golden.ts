@@ -26,6 +26,20 @@ const TARGETS: ReadonlyArray<{ file: string; functions: readonly string[] }> = [
   { file: "d-confidence.ts", functions: ["route"] },
   { file: "e-all-kinds.ts", functions: ["everything"] },
   { file: "f-worst-case.ts", functions: ["processBatch"] },
+  {
+    file: "g-filter.ts",
+    functions: [
+      "routeClient",
+      "noDefault",
+      "complexSwitch",
+      "asymmetric",
+      "throughFinally",
+      "cyclic",
+      "terminalLoop",
+      "withDeadCode",
+      "operators",
+    ],
+  },
 ];
 
 /**

@@ -1,0 +1,172 @@
+{
+  "functionName": "noDefault",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: noDefault",
+      "code": "export function noDefault(clientCode: string): string {",
+      "range": {
+        "startLine": 46,
+        "startCol": 0,
+        "endLine": 46,
+        "endCol": 55
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 54,
+        "startCol": 1,
+        "endLine": 54,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "switch (clientCode)",
+      "code": "switch (clientCode)",
+      "range": {
+        "startLine": 47,
+        "startCol": 2,
+        "endLine": 47,
+        "endCol": 21
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode"
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "switch-case",
+      "label": "case \"A\":",
+      "code": "case \"A\":",
+      "range": {
+        "startLine": 48,
+        "startCol": 4,
+        "endLine": 48,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_5",
+      "kind": "return",
+      "label": "return \"A\";",
+      "code": "return \"A\";",
+      "range": {
+        "startLine": 49,
+        "startCol": 6,
+        "endLine": 49,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "switch-case",
+      "label": "case \"B\":",
+      "code": "case \"B\":",
+      "range": {
+        "startLine": 50,
+        "startCol": 4,
+        "endLine": 50,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"B\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "B"
+        }
+      }
+    },
+    {
+      "id": "n_7",
+      "kind": "return",
+      "label": "return \"B\";",
+      "code": "return \"B\";",
+      "range": {
+        "startLine": 51,
+        "startCol": 6,
+        "endLine": 51,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_8",
+      "kind": "return",
+      "label": "return \"none\";",
+      "code": "return \"none\";",
+      "range": {
+        "startLine": 53,
+        "startCol": 2,
+        "endLine": 53,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "case"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_6",
+      "label": "case"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_8",
+      "label": "default"
+    },
+    {
+      "from": "n_8",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

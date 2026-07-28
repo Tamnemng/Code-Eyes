@@ -123,7 +123,8 @@ export function renderDetail(
       const open = document.createElement("button");
       open.type = "button";
       open.className = "cf-open-callee";
-      open.textContent = `Open ${callee.label}`;
+      open.textContent = `↗ ${callee.label}()`;
+      open.title = `Mở source của ${callee.label}`;
       open.addEventListener("click", () => options.onOpenCallee(callee.targetId));
       callActions.append(open);
     }

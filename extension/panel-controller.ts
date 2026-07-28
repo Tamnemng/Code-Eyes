@@ -74,15 +74,21 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
       localResourceRoots: [distUri],
     };
     const nonce = randomBytes(18).toString("base64");
+    const resourceVersion = `v=${encodeURIComponent(nonce)}`;
+    // Webview có thể cache cùng một asWebviewUri qua nhiều lần F5; query mới buộc nạp bundle vừa build.
+    const styleUri = webviewView.webview
+      .asWebviewUri(vscode.Uri.joinPath(distUri, "webview.css"))
+      .with({ query: resourceVersion })
+      .toString();
+    const scriptUri = webviewView.webview
+      .asWebviewUri(vscode.Uri.joinPath(distUri, "webview.js"))
+      .with({ query: resourceVersion })
+      .toString();
     webviewView.webview.html = buildWebviewHtml({
       nonce,
       cspSource: webviewView.webview.cspSource,
-      styleUri: webviewView.webview
-        .asWebviewUri(vscode.Uri.joinPath(distUri, "webview.css"))
-        .toString(),
-      scriptUri: webviewView.webview
-        .asWebviewUri(vscode.Uri.joinPath(distUri, "webview.js"))
-        .toString(),
+      styleUri,
+      scriptUri,
     });
 
     webviewView.webview.onDidReceiveMessage(
@@ -237,7 +243,8 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
       });
       if (definition === undefined) {
         await vscode.window.showInformationMessage(
-          `CodeFlow: không tìm thấy implementation TypeScript cho ${callSite.label}.`,
+          `CodeFlow: không có source TypeScript để mở cho ${callSite.label} ` +
+            "(có thể là hàm built-in như Array.filter).",
         );
         return;
       }

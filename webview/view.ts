@@ -14,15 +14,17 @@
 
 import type { CalleeLink, GraphNavigation } from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
+import { collectFilterCandidates, type FilterCandidate } from "../filter/candidates";
+import { filterGraph, filterStats } from "../filter/filterGraph";
 import { DEFAULT_DETAIL_WIDTH, detailWidthFromPointer } from "./detail-pane";
 import type { Layout } from "./layout/run-elk";
 import { runLayout } from "./layout/run-elk";
 import { markBackEdges } from "./model/back-edges";
 import { RENDER_GUARD, USER_THRESHOLD, initialCollapsedIds } from "./model/auto-collapse";
 import { applyCollapse } from "./model/collapse";
-import { pruneCollapsedIds } from "./model/collapse";
 import type { DisplayGraph } from "./model/display-graph";
 import { sourceNodeCount, toDisplayGraph } from "./model/display-graph";
+import { reconcileSameGraphState } from "./model/filter-state";
 import { FANOUT_ENABLED, fanoutFinallyRegions } from "./model/finally-fanout";
 import { renderDetail } from "./render/detail";
 import { attachInteractions, type InteractHandles } from "./render/interact";
@@ -43,12 +45,20 @@ export interface ViewOptions {
   restored?: ViewState;
 }
 
+export interface GraphContext {
+  callees?: readonly CalleeLink[];
+  navigation?: GraphNavigation;
+}
+
 export interface View {
-  setGraph: (
-    graph: FlowGraph,
-    context?: { callees: readonly CalleeLink[]; navigation: GraphNavigation },
-  ) => void;
+  setGraph: (graph: FlowGraph, context?: GraphContext) => void;
   showError: (message: string) => void;
+}
+
+interface FilterControl {
+  candidate: FilterCandidate;
+  enabled: HTMLInputElement;
+  value: HTMLInputElement;
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -127,6 +137,36 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   resetButton.title = "Reset view";
   resetButton.setAttribute("aria-label", "Reset view");
 
+  const filterReadout = document.createElement("span");
+  filterReadout.className = "cf-filter-readout";
+  filterReadout.hidden = true;
+  const filterBox = document.createElement("details");
+  filterBox.className = "cf-filter";
+  const filterSummary = document.createElement("summary");
+  filterSummary.title = "Lọc graph theo ràng buộc biến";
+  filterSummary.setAttribute("aria-label", "Lọc graph theo ràng buộc biến");
+  const filterIcon = document.createElement("span");
+  filterIcon.className = "cf-filter-icon";
+  filterIcon.setAttribute("aria-hidden", "true");
+  filterSummary.append(filterIcon);
+  const filterBody = document.createElement("div");
+  filterBody.className = "cf-filter-body";
+  const filterHeading = document.createElement("strong");
+  filterHeading.textContent = "Ràng buộc biến";
+  const filterHelp = document.createElement("p");
+  filterHelp.className = "cf-filter-help";
+  filterHelp.textContent =
+    "Chỉ liệt kê biến analyzer suy luận an toàn. Biến unknown vẫn có thể lọc một chiều.";
+  const filterRows = document.createElement("div");
+  filterRows.className = "cf-filter-rows";
+  const filterActions = document.createElement("div");
+  filterActions.className = "cf-filter-actions";
+  const clearFilterButton = button("Xoá");
+  const applyFilterButton = button("Lọc");
+  filterActions.append(clearFilterButton, applyFilterButton);
+  filterBody.append(filterHeading, filterHelp, filterRows, filterActions);
+  filterBox.append(filterSummary, filterBody);
+
   const settingsBox = document.createElement("details");
   settingsBox.className = "cf-settings";
   const settingsSummary = document.createElement("summary");
@@ -141,6 +181,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     backButton,
     heading,
     stats,
+    filterReadout,
+    filterBox,
     settingsBox,
     expandButton,
     collapseButton,
@@ -182,6 +224,11 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   let cachedKey = "";
   let detailWidth = DEFAULT_DETAIL_WIDTH;
   let calleeLinks: readonly CalleeLink[] = [];
+  let sourceGraph: FlowGraph | undefined;
+  let sourceContext: GraphContext | undefined;
+  let filterControls: FilterControl[] = [];
+  let filterListGeneration = 0;
+  let renderSourceGraph: (() => void) | undefined;
 
   const persist = (): void => options.onStateChange(state);
 
@@ -327,6 +374,97 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     });
   };
 
+  // ---- filter theo condition.parsed ----
+
+  const populateFilterControls = (graph: FlowGraph): void => {
+    filterRows.replaceChildren();
+    filterControls = [];
+    filterListGeneration += 1;
+    const candidates = collectFilterCandidates(graph);
+    if (candidates.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "cf-filter-empty";
+      empty.textContent = "Hàm này chưa có biến nào đủ an toàn để lọc.";
+      filterRows.append(empty);
+      applyFilterButton.disabled = true;
+      clearFilterButton.disabled = Object.keys(state.constraints).length === 0;
+      return;
+    }
+
+    applyFilterButton.disabled = false;
+    clearFilterButton.disabled = Object.keys(state.constraints).length === 0;
+    candidates.forEach((candidate, index) => {
+      const row = document.createElement("label");
+      row.className = "cf-filter-row";
+      const enabled = document.createElement("input");
+      enabled.type = "checkbox";
+      const active = Object.prototype.hasOwnProperty.call(state.constraints, candidate.variable);
+      enabled.checked = active;
+      enabled.setAttribute("aria-label", `Bật ràng buộc ${candidate.variable}`);
+
+      const variable = document.createElement("code");
+      variable.textContent = candidate.variable;
+      variable.title =
+        `${candidate.certainNodes} điều kiện certain` +
+        (candidate.unknownNodes > 0
+          ? `, ${candidate.unknownNodes} điều kiện suy luận một chiều`
+          : "");
+
+      const value = document.createElement("input");
+      value.type = "text";
+      value.value = state.constraints[candidate.variable] ?? candidate.values[0] ?? "";
+      value.disabled = !active;
+      value.placeholder = "giá trị";
+      value.setAttribute("aria-label", `Giá trị của ${candidate.variable}`);
+
+      if (candidate.values.length > 0) {
+        const listId = `cf-filter-values-${filterListGeneration}-${index}`;
+        value.setAttribute("list", listId);
+        const list = document.createElement("datalist");
+        list.id = listId;
+        for (const candidateValue of candidate.values) {
+          const option = document.createElement("option");
+          option.value = candidateValue;
+          list.append(option);
+        }
+        row.append(enabled, variable, value, list);
+      } else {
+        row.append(enabled, variable, value);
+      }
+
+      enabled.addEventListener("change", () => {
+        value.disabled = !enabled.checked;
+        if (enabled.checked) value.focus();
+      });
+      value.addEventListener("input", () => {
+        if (!enabled.checked) {
+          enabled.checked = true;
+          value.disabled = false;
+        }
+      });
+      filterControls.push({ candidate, enabled, value });
+      filterRows.append(row);
+    });
+  };
+
+  applyFilterButton.addEventListener("click", () => {
+    const constraints: Record<string, string> = {};
+    for (const control of filterControls) {
+      if (control.enabled.checked) constraints[control.candidate.variable] = control.value.value;
+    }
+    state = { ...state, constraints };
+    persist();
+    filterBox.open = false;
+    renderSourceGraph?.();
+  });
+
+  clearFilterButton.addEventListener("click", () => {
+    state = { ...state, constraints: {} };
+    persist();
+    filterBox.open = false;
+    renderSourceGraph?.();
+  });
+
   // ---- bảng tuỳ chỉnh hiển thị ----
 
   const applySettings = (next: Partial<DisplaySettings>): void => {
@@ -439,75 +577,106 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     renderGraphView(false);
   });
 
+  renderSourceGraph = () => {
+    const next = sourceGraph;
+    if (next === undefined) return;
+    const context = sourceContext;
+    calleeLinks = context?.callees ?? [];
+    const graphNavigation = context?.navigation ?? {
+      breadcrumbs: [next.functionName],
+      canGoBack: false,
+    };
+    backButton.hidden = !graphNavigation.canGoBack;
+    breadcrumbs.textContent = graphNavigation.breadcrumbs.join(" → ");
+
+    const key = graphKeyOf(next.filePath, next.functionName);
+    const sameGraph = state.graphKey === key;
+    if (!sameGraph) {
+      state = {
+        ...initialState(),
+        graphKey: key,
+        settings: state.settings,
+      };
+    }
+
+    // Graph nguồn là nguồn sự thật cho state. Node bị filter ẩn vẫn hợp lệ, nên collapse /
+    // selection của nó không bị prune; bỏ constraint thì trạng thái quay lại.
+    if (sameGraph) {
+      state = reconcileSameGraphState(state, toDisplayGraph(next), false);
+    }
+
+    // Constraint persistence có thể đến từ source cũ cùng graphKey. Chỉ giữ biến analyzer
+    // hiện vẫn công bố; không giữ key mồ côi sống lại trên source khác.
+    const candidates = collectFilterCandidates(next);
+    const knownVariables = new Set(candidates.map((candidate) => candidate.variable));
+    const constraints = Object.fromEntries(
+      Object.entries(state.constraints).filter(([variable]) => knownVariables.has(variable)),
+    );
+    state = { ...state, constraints };
+
+    const filtered = filterGraph(next, state.constraints);
+    const display = toDisplayGraph(filtered);
+    base = markBackEdges(FANOUT_ENABLED ? fanoutFinallyRegions(display) : display);
+    if (!sameGraph) state = { ...state, collapsedIds: initialCollapsedIds(base) };
+
+    const summary = filterStats(next, filtered);
+    const hasConstraints = Object.keys(state.constraints).length > 0;
+    filterReadout.hidden = !hasConstraints;
+    filterReadout.textContent = `Đang ẩn ${summary.hidden}/${summary.total}`;
+    filterBox.classList.toggle("cf-filter-active", hasConstraints);
+    populateFilterControls(next);
+
+    persist();
+    cachedLayout = undefined;
+    cachedKey = "";
+
+    warnings.replaceChildren();
+    const notes = [...filtered.warnings];
+    if (sourceNodeCount(base) > USER_THRESHOLD || base.nodes.length > RENDER_GUARD) {
+      notes.unshift(
+        `Graph lớn (${sourceNodeCount(base)} node > ${USER_THRESHOLD}, hoặc ` +
+          `${base.nodes.length} node vẽ > ${RENDER_GUARD}) - đã thu gọn về tầng ngoài cùng. ` +
+          "Lưu ý: collapse chỉ phủ try/catch/finally nên trên nhiều hàm nó không giúp gì " +
+          "(xem TODO.md mục 1).",
+      );
+    }
+    warnings.hidden = notes.length === 0;
+    if (notes.length > 0) {
+      const warningSummary = document.createElement("summary");
+      warningSummary.textContent = `${notes.length} cảnh báo`;
+      const list = document.createElement("ul");
+      for (const note of notes) {
+        const item = document.createElement("li");
+        item.textContent = note;
+        list.append(item);
+      }
+      warnings.append(warningSummary, list);
+    }
+
+    renderGraphView(true);
+  };
+
   applyCssSettings();
 
   return {
     setGraph: (next, context) => {
-      calleeLinks = context?.callees ?? [];
-      const graphNavigation = context?.navigation ?? {
-        breadcrumbs: [next.functionName],
-        canGoBack: false,
-      };
-      backButton.hidden = !graphNavigation.canGoBack;
-      breadcrumbs.textContent = graphNavigation.breadcrumbs.join(" → ");
-      const key = graphKeyOf(next.filePath, next.functionName);
-      const display = toDisplayGraph(next);
-      base = markBackEdges(FANOUT_ENABLED ? fanoutFinallyRegions(display) : display);
-
-      if (state.graphKey === key) {
-        // Cùng graph (tab ẩn rồi hiện lại): giữ nguyên trạng thái người dùng, chỉ lọc id đã
-        // biến mất. Không áp lại mặc định - làm thế là thu gọn lại đúng cái họ vừa mở.
-        state = {
-          ...state,
-          collapsedIds: pruneCollapsedIds(base, state.collapsedIds),
-          selectedSourceId: base.nodes.some((n) => n.sourceId === state.selectedSourceId)
-            ? state.selectedSourceId
-            : undefined,
-        };
-      } else {
-        state = {
-          ...initialState(),
-          graphKey: key,
-          collapsedIds: initialCollapsedIds(base),
-          settings: state.settings, // Tuỳ chỉnh hiển thị theo NGƯỜI, không theo graph.
-        };
-      }
-      persist();
-      cachedLayout = undefined;
-      cachedKey = "";
-
-      warnings.replaceChildren();
-      const notes = [...next.warnings];
-      if (sourceNodeCount(base) > USER_THRESHOLD || base.nodes.length > RENDER_GUARD) {
-        notes.unshift(
-          `Graph lớn (${sourceNodeCount(base)} node > ${USER_THRESHOLD}, hoặc ` +
-            `${base.nodes.length} node vẽ > ${RENDER_GUARD}) - đã thu gọn về tầng ngoài cùng. ` +
-            "Lưu ý: collapse chỉ phủ try/catch/finally nên trên nhiều hàm nó không giúp gì " +
-            "(xem TODO.md mục 1).",
-        );
-      }
-      warnings.hidden = notes.length === 0;
-      if (notes.length > 0) {
-        const summary = document.createElement("summary");
-        summary.textContent = `${notes.length} cảnh báo`;
-        const list = document.createElement("ul");
-        for (const note of notes) {
-          const item = document.createElement("li");
-          item.textContent = note;
-          list.append(item);
-        }
-        warnings.append(summary, list);
-      }
-
-      renderGraphView(true);
+      sourceGraph = next;
+      sourceContext = context;
+      renderSourceGraph?.();
     },
 
     showError: (message) => {
+      sourceGraph = undefined;
+      sourceContext = undefined;
       base = undefined;
       cachedLayout = undefined;
       cachedKey = "";
       heading.textContent = "Không dựng được graph";
       stats.textContent = "";
+      filterReadout.hidden = true;
+      filterBox.open = false;
+      filterBox.classList.remove("cf-filter-active");
+      filterRows.replaceChildren();
       warnings.hidden = true;
       surface.replaceChildren();
       detail.replaceChildren();

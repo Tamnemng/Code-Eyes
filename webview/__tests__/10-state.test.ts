@@ -31,12 +31,14 @@ describe("serializeState / restoreState - round-trip", () => {
     state.collapsedIds.add("n_3");
     state.selectedSourceId = "n_12";
     state.transform = { x: -40, y: 15, scale: 2 };
+    state.constraints = { clientCode: "NUTRICARE", region: "EU" };
 
     const restored = restoreState(JSON.parse(JSON.stringify(serializeState(state))));
     expect(restored.graphKey).toBe("/src/a.ts#Svc.route");
     expect(restored.collapsedIds).toEqual(new Set(["n_3", "n_7"]));
     expect(restored.selectedSourceId).toBe("n_12");
     expect(restored.transform).toEqual({ x: -40, y: 15, scale: 2 });
+    expect(restored.constraints).toEqual({ clientCode: "NUTRICARE", region: "EU" });
   });
 
   it("không chọn gì -> phục hồi thành undefined, không phải null", () => {
@@ -51,6 +53,8 @@ describe("serializeState / restoreState - round-trip", () => {
     const b = initialState();
     b.collapsedIds.add("n_1");
     b.collapsedIds.add("n_9");
+    a.constraints = { z: "2", a: "1" };
+    b.constraints = { a: "1", z: "2" };
     expect(JSON.stringify(serializeState(a))).toBe(JSON.stringify(serializeState(b)));
   });
 });
@@ -90,6 +94,19 @@ describe("restoreState - dữ liệu KHÔNG tin được", () => {
   it("graphKey không phải string -> undefined, coi như graph mới", () => {
     expect(restoreState({ graphKey: 42 }).graphKey).toBeUndefined();
     expect(restoreState({}).graphKey).toBeUndefined();
+  });
+
+  it("constraints chỉ nhận cặp string/string và bỏ key rỗng", () => {
+    expect(
+      restoreState({
+        constraints: {
+          clientCode: "NUTRICARE",
+          count: 7,
+          emptyObject: {},
+          "": "ignored",
+        },
+      }).constraints,
+    ).toEqual({ clientCode: "NUTRICARE" });
   });
 
   it("schema của bản webview cũ (field lạ) -> không crash, lấy được phần hiểu được", () => {

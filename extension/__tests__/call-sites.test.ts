@@ -64,4 +64,29 @@ describe("collectCallSites", () => {
       { targetId: "n_catch:call:2", nodeId: "n_catch", label: "stringify" },
     ]);
   });
+
+  it("không tạo nút mở callee cho method collection built-in như filter/map", () => {
+    const builtinSource = `function pick(rows: string[]) {
+  return rows.filter((row) => row.length > 0).map((row) => row.trim());
+}`;
+    const builtinGraph: FlowGraph = {
+      functionName: "pick",
+      filePath: "pick.ts",
+      language: "typescript",
+      warnings: [],
+      nodes: [
+        {
+          id: "n_return",
+          kind: "return",
+          label: "return rows.filter(...).map(...)",
+          code: "return rows.filter((row) => row.length > 0).map((row) => row.trim());",
+          range: { startLine: 2, startCol: 2, endLine: 2, endCol: 72 },
+          confidence: "certain",
+        },
+      ],
+      edges: [],
+    };
+
+    expect(collectCallSites("pick.ts", builtinSource, builtinGraph)).toEqual([]);
+  });
 });

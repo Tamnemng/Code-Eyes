@@ -1,0 +1,575 @@
+{
+  "functionName": "routeClient",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: routeClient",
+      "code": "export function routeClient(clientCode: string, enabled: boolean): string[] {",
+      "range": {
+        "startLine": 9,
+        "startCol": 0,
+        "endLine": 9,
+        "endCol": 77
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 44,
+        "startCol": 1,
+        "endLine": 44,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "statement",
+      "label": "const steps = [\"common:start\"];",
+      "code": "const steps = [\"common:start\"];",
+      "range": {
+        "startLine": 10,
+        "startCol": 2,
+        "endLine": 10,
+        "endCol": 33
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "condition",
+      "label": "switch (clientCode)",
+      "code": "switch (clientCode)",
+      "range": {
+        "startLine": 12,
+        "startCol": 2,
+        "endLine": 12,
+        "endCol": 21
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode"
+      }
+    },
+    {
+      "id": "n_5",
+      "kind": "switch-case",
+      "label": "case \"A\":",
+      "code": "case \"A\":",
+      "range": {
+        "startLine": 13,
+        "startCol": 4,
+        "endLine": 13,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_6",
+      "kind": "statement",
+      "label": "steps.push(\"branch:A\");",
+      "code": "steps.push(\"branch:A\");",
+      "range": {
+        "startLine": 14,
+        "startCol": 6,
+        "endLine": 14,
+        "endCol": 29
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_7",
+      "kind": "switch-case",
+      "label": "case \"B\":",
+      "code": "case \"B\":",
+      "range": {
+        "startLine": 15,
+        "startCol": 4,
+        "endLine": 15,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"B\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "B"
+        }
+      }
+    },
+    {
+      "id": "n_8",
+      "kind": "statement",
+      "label": "steps.push(\"fallthrough:A-or-B\");",
+      "code": "steps.push(\"fallthrough:A-or-B\");",
+      "range": {
+        "startLine": 16,
+        "startCol": 6,
+        "endLine": 16,
+        "endCol": 39
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_9",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 17,
+        "startCol": 6,
+        "endLine": 17,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_10",
+      "kind": "switch-case",
+      "label": "case \"C\":",
+      "code": "case \"C\":",
+      "range": {
+        "startLine": 18,
+        "startCol": 4,
+        "endLine": 18,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"C\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "C"
+        }
+      }
+    },
+    {
+      "id": "n_11",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n        steps.push(\"branch:C\");\n      } finally {\n        steps.push(\"cleanup:C\");\n      }",
+      "range": {
+        "startLine": 19,
+        "startCol": 6,
+        "endLine": 23,
+        "endCol": 7
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_12",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n        steps.push(\"cleanup:C\");\n      }",
+      "range": {
+        "startLine": 21,
+        "startCol": 8,
+        "endLine": 23,
+        "endCol": 7
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_13",
+      "kind": "statement",
+      "label": "steps.push(\"branch:C\");",
+      "code": "steps.push(\"branch:C\");",
+      "range": {
+        "startLine": 20,
+        "startCol": 8,
+        "endLine": 20,
+        "endCol": 31
+      },
+      "confidence": "certain",
+      "parentId": "n_11"
+    },
+    {
+      "id": "n_14",
+      "kind": "statement",
+      "label": "steps.push(\"cleanup:C\");",
+      "code": "steps.push(\"cleanup:C\");",
+      "range": {
+        "startLine": 22,
+        "startCol": 8,
+        "endLine": 22,
+        "endCol": 32
+      },
+      "confidence": "certain",
+      "parentId": "n_12"
+    },
+    {
+      "id": "n_15",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 24,
+        "startCol": 6,
+        "endLine": 24,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_16",
+      "kind": "switch-case",
+      "label": "case \"D\":",
+      "code": "case \"D\":",
+      "range": {
+        "startLine": 25,
+        "startCol": 4,
+        "endLine": 25,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"D\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "D"
+        }
+      }
+    },
+    {
+      "id": "n_17",
+      "kind": "statement",
+      "label": "steps.push(\"branch:D\");",
+      "code": "steps.push(\"branch:D\");",
+      "range": {
+        "startLine": 26,
+        "startCol": 6,
+        "endLine": 26,
+        "endCol": 29
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_18",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 27,
+        "startCol": 6,
+        "endLine": 27,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_19",
+      "kind": "switch-case",
+      "label": "case \"E\":",
+      "code": "case \"E\":",
+      "range": {
+        "startLine": 28,
+        "startCol": 4,
+        "endLine": 28,
+        "endCol": 13
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"E\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "E"
+        }
+      }
+    },
+    {
+      "id": "n_20",
+      "kind": "statement",
+      "label": "steps.push(\"branch:E\");",
+      "code": "steps.push(\"branch:E\");",
+      "range": {
+        "startLine": 29,
+        "startCol": 6,
+        "endLine": 29,
+        "endCol": 29
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_21",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 30,
+        "startCol": 6,
+        "endLine": 30,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_22",
+      "kind": "switch-case",
+      "label": "default:",
+      "code": "default:",
+      "range": {
+        "startLine": 31,
+        "startCol": 4,
+        "endLine": 31,
+        "endCol": 12
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "default"
+      }
+    },
+    {
+      "id": "n_23",
+      "kind": "statement",
+      "label": "steps.push(\"branch:default\");",
+      "code": "steps.push(\"branch:default\");",
+      "range": {
+        "startLine": 32,
+        "startCol": 6,
+        "endLine": 32,
+        "endCol": 35
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_24",
+      "kind": "condition",
+      "label": "enabled",
+      "code": "enabled",
+      "range": {
+        "startLine": 36,
+        "startCol": 6,
+        "endLine": 36,
+        "endCol": 13
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "enabled"
+      }
+    },
+    {
+      "id": "n_25",
+      "kind": "statement",
+      "label": "steps.push(\"unknown:true\");",
+      "code": "steps.push(\"unknown:true\");",
+      "range": {
+        "startLine": 37,
+        "startCol": 4,
+        "endLine": 37,
+        "endCol": 31
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_26",
+      "kind": "statement",
+      "label": "steps.push(\"unknown:false\");",
+      "code": "steps.push(\"unknown:false\");",
+      "range": {
+        "startLine": 39,
+        "startCol": 4,
+        "endLine": 39,
+        "endCol": 32
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_27",
+      "kind": "statement",
+      "label": "steps.push(\"common:end\");",
+      "code": "steps.push(\"common:end\");",
+      "range": {
+        "startLine": 42,
+        "startCol": 2,
+        "endLine": 42,
+        "endCol": 27
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_28",
+      "kind": "return",
+      "label": "return steps;",
+      "code": "return steps;",
+      "range": {
+        "startLine": 43,
+        "startCol": 2,
+        "endLine": 43,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "case"
+    },
+    {
+      "from": "n_5",
+      "to": "n_6"
+    },
+    {
+      "from": "n_4",
+      "to": "n_7",
+      "label": "case"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_8"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9"
+    },
+    {
+      "from": "n_4",
+      "to": "n_10",
+      "label": "case"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11"
+    },
+    {
+      "from": "n_11",
+      "to": "n_12",
+      "label": "exception"
+    },
+    {
+      "from": "n_11",
+      "to": "n_13"
+    },
+    {
+      "from": "n_13",
+      "to": "n_12"
+    },
+    {
+      "from": "n_12",
+      "to": "n_14"
+    },
+    {
+      "from": "n_14",
+      "to": "n_2",
+      "label": "exception"
+    },
+    {
+      "from": "n_14",
+      "to": "n_15"
+    },
+    {
+      "from": "n_4",
+      "to": "n_16",
+      "label": "case"
+    },
+    {
+      "from": "n_16",
+      "to": "n_17"
+    },
+    {
+      "from": "n_17",
+      "to": "n_18"
+    },
+    {
+      "from": "n_4",
+      "to": "n_19",
+      "label": "case"
+    },
+    {
+      "from": "n_19",
+      "to": "n_20"
+    },
+    {
+      "from": "n_20",
+      "to": "n_21"
+    },
+    {
+      "from": "n_4",
+      "to": "n_22",
+      "label": "default"
+    },
+    {
+      "from": "n_22",
+      "to": "n_23"
+    },
+    {
+      "from": "n_23",
+      "to": "n_24"
+    },
+    {
+      "from": "n_9",
+      "to": "n_24"
+    },
+    {
+      "from": "n_15",
+      "to": "n_24"
+    },
+    {
+      "from": "n_18",
+      "to": "n_24"
+    },
+    {
+      "from": "n_21",
+      "to": "n_24"
+    },
+    {
+      "from": "n_24",
+      "to": "n_25",
+      "label": "true"
+    },
+    {
+      "from": "n_24",
+      "to": "n_26",
+      "label": "false"
+    },
+    {
+      "from": "n_25",
+      "to": "n_27"
+    },
+    {
+      "from": "n_26",
+      "to": "n_27"
+    },
+    {
+      "from": "n_27",
+      "to": "n_28"
+    },
+    {
+      "from": "n_28",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

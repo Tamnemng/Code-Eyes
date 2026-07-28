@@ -1,0 +1,182 @@
+{
+  "functionName": "complexSwitch",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: complexSwitch",
+      "code": "export function complexSwitch(clientCode: string): string {",
+      "range": {
+        "startLine": 56,
+        "startCol": 0,
+        "endLine": 56,
+        "endCol": 59
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 65,
+        "startCol": 1,
+        "endLine": 65,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "switch (normalize(clientCode))",
+      "code": "switch (normalize(clientCode))",
+      "range": {
+        "startLine": 57,
+        "startCol": 2,
+        "endLine": 57,
+        "endCol": 32
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "normalize(clientCode)"
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "switch-case",
+      "label": "case \"A\":",
+      "code": "case \"A\":",
+      "range": {
+        "startLine": 58,
+        "startCol": 4,
+        "endLine": 58,
+        "endCol": 13
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "case \"A\""
+      }
+    },
+    {
+      "id": "n_5",
+      "kind": "return",
+      "label": "return \"A\";",
+      "code": "return \"A\";",
+      "range": {
+        "startLine": 59,
+        "startCol": 6,
+        "endLine": 59,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "switch-case",
+      "label": "case \"B\":",
+      "code": "case \"B\":",
+      "range": {
+        "startLine": 60,
+        "startCol": 4,
+        "endLine": 60,
+        "endCol": 13
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "case \"B\""
+      }
+    },
+    {
+      "id": "n_7",
+      "kind": "return",
+      "label": "return \"B\";",
+      "code": "return \"B\";",
+      "range": {
+        "startLine": 61,
+        "startCol": 6,
+        "endLine": 61,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_8",
+      "kind": "switch-case",
+      "label": "default:",
+      "code": "default:",
+      "range": {
+        "startLine": 62,
+        "startCol": 4,
+        "endLine": 62,
+        "endCol": 12
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "default"
+      }
+    },
+    {
+      "id": "n_9",
+      "kind": "return",
+      "label": "return \"other\";",
+      "code": "return \"other\";",
+      "range": {
+        "startLine": 63,
+        "startCol": 6,
+        "endLine": 63,
+        "endCol": 21
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "case"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_6",
+      "label": "case"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_8",
+      "label": "default"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9"
+    },
+    {
+      "from": "n_9",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

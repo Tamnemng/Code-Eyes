@@ -27,6 +27,8 @@ export interface ViewState {
   collapsedIds: Set<string>;
   /** `sourceId` của node đang chọn, hoặc `undefined`. */
   selectedSourceId: string | undefined;
+  /** Ràng buộc filter của graph hiện tại. Key/value đều là source text/string literal. */
+  constraints: Record<string, string>;
   transform: Transform;
   /** Tuỳ chỉnh hiển thị (cỡ node, cỡ chữ, độ dày cạnh, bảng màu). Xem `settings.ts`. */
   settings: DisplaySettings;
@@ -49,6 +51,7 @@ export function initialState(): ViewState {
     graphKey: undefined,
     collapsedIds: new Set(),
     selectedSourceId: undefined,
+    constraints: {},
     transform: { x: 0, y: 0, scale: 1 },
     settings: defaultSettings(),
   };
@@ -56,11 +59,15 @@ export function initialState(): ViewState {
 
 /** Hình dạng đem đi `setState` - `Set` không qua được JSON nên đổi thành mảng. */
 export function serializeState(state: ViewState): unknown {
+  const constraints = Object.fromEntries(
+    Object.entries(state.constraints).sort(([left], [right]) => left.localeCompare(right)),
+  );
   return {
     version: 1,
     graphKey: state.graphKey ?? null,
     collapsedIds: [...state.collapsedIds].sort(),
     selectedSourceId: state.selectedSourceId ?? null,
+    constraints,
     transform: state.transform,
     settings: state.settings,
   };
@@ -96,6 +103,13 @@ export function restoreState(raw: unknown): ViewState {
 
   const selected = raw["selectedSourceId"];
   if (typeof selected === "string") state.selectedSourceId = selected;
+
+  const constraints = raw["constraints"];
+  if (isRecord(constraints)) {
+    for (const [variable, value] of Object.entries(constraints)) {
+      if (variable !== "" && typeof value === "string") state.constraints[variable] = value;
+    }
+  }
 
   const transform = raw["transform"];
   if (isRecord(transform)) {

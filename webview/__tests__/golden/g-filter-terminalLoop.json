@@ -1,0 +1,124 @@
+{
+  "functionName": "terminalLoop",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: terminalLoop",
+      "code": "export function terminalLoop(clientCode: string): never {",
+      "range": {
+        "startLine": 97,
+        "startCol": 0,
+        "endLine": 97,
+        "endCol": 57
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 104,
+        "startCol": 1,
+        "endLine": 104,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "loop",
+      "label": "while (true)",
+      "code": "while (true)",
+      "range": {
+        "startLine": 98,
+        "startCol": 2,
+        "endLine": 98,
+        "endCol": 14
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "condition",
+      "label": "clientCode === \"A\"",
+      "code": "clientCode === \"A\"",
+      "range": {
+        "startLine": 99,
+        "startCol": 8,
+        "endLine": 99,
+        "endCol": 26
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode === \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_5",
+      "kind": "continue",
+      "label": "continue;",
+      "code": "continue;",
+      "range": {
+        "startLine": 100,
+        "startCol": 6,
+        "endLine": 100,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "throw",
+      "label": "throw new Error(\"stop\");",
+      "code": "throw new Error(\"stop\");",
+      "range": {
+        "startLine": 102,
+        "startCol": 4,
+        "endLine": 102,
+        "endCol": 28
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "true"
+    },
+    {
+      "from": "n_5",
+      "to": "n_3"
+    },
+    {
+      "from": "n_4",
+      "to": "n_6",
+      "label": "false"
+    },
+    {
+      "from": "n_6",
+      "to": "n_2",
+      "label": "exception"
+    }
+  ],
+  "warnings": []
+}

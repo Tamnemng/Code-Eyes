@@ -1,0 +1,105 @@
+{
+  "functionName": "asymmetric",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: asymmetric",
+      "code": "export function asymmetric(clientCode: string): string {",
+      "range": {
+        "startLine": 67,
+        "startCol": 0,
+        "endLine": 67,
+        "endCol": 56
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 72,
+        "startCol": 1,
+        "endLine": 72,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "clientCode === \"A\" && guard()",
+      "code": "clientCode === \"A\" && guard()",
+      "range": {
+        "startLine": 68,
+        "startCol": 6,
+        "endLine": 68,
+        "endCol": 35
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "clientCode === \"A\" && guard()",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "return",
+      "label": "return \"A-and-guard\";",
+      "code": "return \"A-and-guard\";",
+      "range": {
+        "startLine": 69,
+        "startCol": 4,
+        "endLine": 69,
+        "endCol": 25
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "return",
+      "label": "return \"fallback\";",
+      "code": "return \"fallback\";",
+      "range": {
+        "startLine": 71,
+        "startCol": 2,
+        "endLine": 71,
+        "endCol": 20
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

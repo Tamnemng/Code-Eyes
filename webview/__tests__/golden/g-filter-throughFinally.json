@@ -1,0 +1,165 @@
+{
+  "functionName": "throughFinally",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: throughFinally",
+      "code": "export function throughFinally(clientCode: string): string {",
+      "range": {
+        "startLine": 74,
+        "startCol": 0,
+        "endLine": 74,
+        "endCol": 60
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 83,
+        "startCol": 1,
+        "endLine": 83,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n    if (clientCode === \"A\") {\n      return \"A\";\n    }\n    return \"other\";\n  } finally {\n    audit(clientCode);\n  }",
+      "range": {
+        "startLine": 75,
+        "startCol": 2,
+        "endLine": 82,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n    audit(clientCode);\n  }",
+      "range": {
+        "startLine": 80,
+        "startCol": 4,
+        "endLine": 82,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "condition",
+      "label": "clientCode === \"A\"",
+      "code": "clientCode === \"A\"",
+      "range": {
+        "startLine": 76,
+        "startCol": 8,
+        "endLine": 76,
+        "endCol": 26
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode === \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      },
+      "parentId": "n_3"
+    },
+    {
+      "id": "n_6",
+      "kind": "return",
+      "label": "return \"A\";",
+      "code": "return \"A\";",
+      "range": {
+        "startLine": 77,
+        "startCol": 6,
+        "endLine": 77,
+        "endCol": 17
+      },
+      "confidence": "certain",
+      "parentId": "n_3"
+    },
+    {
+      "id": "n_7",
+      "kind": "return",
+      "label": "return \"other\";",
+      "code": "return \"other\";",
+      "range": {
+        "startLine": 79,
+        "startCol": 4,
+        "endLine": 79,
+        "endCol": 19
+      },
+      "confidence": "certain",
+      "parentId": "n_3"
+    },
+    {
+      "id": "n_8",
+      "kind": "statement",
+      "label": "audit(clientCode);",
+      "code": "audit(clientCode);",
+      "range": {
+        "startLine": 81,
+        "startCol": 4,
+        "endLine": 81,
+        "endCol": 22
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "exception"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_6",
+      "label": "true"
+    },
+    {
+      "from": "n_6",
+      "to": "n_4"
+    },
+    {
+      "from": "n_5",
+      "to": "n_7",
+      "label": "false"
+    },
+    {
+      "from": "n_7",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_8"
+    },
+    {
+      "from": "n_8",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

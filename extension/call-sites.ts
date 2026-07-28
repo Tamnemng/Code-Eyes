@@ -9,6 +9,49 @@ export interface CallSite extends CalleeLink {
   column: number;
 }
 
+// Không có TypeChecker ở lớp này nên không thể chứng minh receiver là Array/String. Các tên
+// prototype chuẩn dưới đây gần như luôn resolve vào lib.d.ts (host cố ý không mở .d.ts), vì
+// vậy hiện nút ↗ chỉ dẫn tới lỗi. Đổi lại, custom method trùng đúng tên sẽ không có nút mở.
+const NON_NAVIGABLE_BUILTINS = new Set([
+  "at",
+  "charAt",
+  "concat",
+  "endsWith",
+  "every",
+  "filter",
+  "find",
+  "findIndex",
+  "flat",
+  "flatMap",
+  "forEach",
+  "includes",
+  "indexOf",
+  "join",
+  "lastIndexOf",
+  "map",
+  "pop",
+  "push",
+  "reduce",
+  "reduceRight",
+  "replace",
+  "replaceAll",
+  "reverse",
+  "shift",
+  "slice",
+  "some",
+  "sort",
+  "splice",
+  "split",
+  "startsWith",
+  "substring",
+  "toLowerCase",
+  "toUpperCase",
+  "trim",
+  "trimEnd",
+  "trimStart",
+  "unshift",
+]);
+
 function scriptKind(filePath: string): ts.ScriptKind {
   return filePath.toLowerCase().endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
 }
@@ -53,6 +96,13 @@ function calleeOf(call: ts.CallExpression): ts.Expression {
   return call.expression;
 }
 
+function isNonNavigableBuiltin(call: ts.CallExpression): boolean {
+  return (
+    ts.isPropertyAccessExpression(call.expression) &&
+    NON_NAVIGABLE_BUILTINS.has(call.expression.name.text)
+  );
+}
+
 /**
  * Tìm call-site bằng AST nhưng không resolve symbol. Việc resolve được hoãn đến lúc người dùng
  * bấm nút và giao cho VS Code definition provider, nhờ đó hiểu tsconfig/path alias của workspace.
@@ -72,7 +122,7 @@ export function collectCallSites(
   const sites: CallSite[] = [];
 
   const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node)) {
+    if (ts.isCallExpression(node) && !isNonNavigableBuiltin(node)) {
       const callee = calleeOf(node);
       const start = callee.getStart(sourceFile);
       const owner = containingNode(graph, sourceFile, start);

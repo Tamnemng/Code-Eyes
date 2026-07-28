@@ -26,6 +26,35 @@
   --cf-focus: var(--vscode-focusBorder, #5b9dd9);
   --cf-danger: var(--vscode-errorForeground, #d97070);
 
+  /* Ép alpha = 1 trước khi pha: theme có thể khai báo các màu button/widget trong suốt.
+     Nền vẫn lấy hue từ editor VS Code, nhưng toolbar, popover và control luôn là mặt đặc. */
+  --cf-opaque-editor-bg: rgb(
+    from var(--vscode-editor-background, #12141a) r g b / 1
+  );
+  --cf-opaque-editor-fg: rgb(
+    from var(--vscode-editor-foreground, #c6ccd8) r g b / 1
+  );
+  --cf-chrome-bg: color-mix(
+    in srgb,
+    var(--cf-opaque-editor-bg) 94%,
+    var(--cf-opaque-editor-fg) 6%
+  );
+  --cf-control-bg: color-mix(
+    in srgb,
+    var(--cf-opaque-editor-bg) 82%,
+    var(--cf-opaque-editor-fg) 18%
+  );
+  --cf-control-hover-bg: color-mix(
+    in srgb,
+    var(--cf-opaque-editor-bg) 70%,
+    var(--cf-opaque-editor-fg) 30%
+  );
+  --cf-control-active-bg: color-mix(
+    in srgb,
+    var(--cf-opaque-editor-bg) 64%,
+    rgb(from var(--vscode-focusBorder, #5b9dd9) r g b / 1) 36%
+  );
+
   /* --- accent theo kind: CHỈ dùng cho viền và mũi tên --- */
   --cf-accent-entry: var(--vscode-charts-green, #6fbf8f);
   --cf-accent-exit: var(--vscode-charts-purple, #a08ad0);
@@ -149,11 +178,17 @@ body {
   margin-right: auto;
 }
 
+.cf-filter-readout {
+  font-size: var(--cf-text-sm);
+  color: var(--cf-focus);
+  white-space: nowrap;
+}
+
 .cf-toolbar button {
   font-family: inherit;
   font-size: var(--cf-text-sm);
-  color: var(--cf-fg);
-  background: transparent;
+  color: var(--vscode-button-secondaryForeground, var(--cf-fg));
+  background: var(--cf-control-bg);
   border: 1px solid var(--cf-line-strong);
   border-radius: 4px;
   padding: 4px 10px;
@@ -162,7 +197,7 @@ body {
 }
 
 .cf-toolbar button:hover {
-  background: var(--cf-surface-hover);
+  background: var(--cf-control-hover-bg);
   border-color: var(--cf-focus);
   color: var(--cf-fg-strong);
 }
@@ -227,7 +262,7 @@ body {
   min-height: 27px;
   padding: 6px 12px;
   border-top: 1px solid var(--cf-line);
-  background: var(--cf-bg-raised);
+  background: var(--cf-chrome-bg);
 }
 
 .cf-breadcrumbs {
@@ -630,9 +665,146 @@ body {
   flex: 0 0 auto;
 }
 
+.cf-filter {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.cf-filter > summary {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  color: var(--vscode-button-secondaryForeground, var(--cf-fg));
+  background: var(--cf-control-bg);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 4px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cf-filter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cf-filter[open] > summary,
+.cf-filter.cf-filter-active > summary {
+  border-color: var(--cf-focus);
+  color: var(--vscode-list-activeSelectionForeground, var(--cf-fg-strong));
+  background: var(--cf-control-active-bg);
+}
+
+/* Icon phễu dựng bằng CSS để dùng được dưới CSP nghiêm, không cần inline SVG/style. */
+.cf-filter-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.cf-filter-icon::before {
+  content: "";
+  position: absolute;
+  inset: 1px 1px 5px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 62% 100%, 38% 100%);
+}
+
+.cf-filter-icon::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  bottom: 1px;
+  width: 3px;
+  height: 5px;
+  border-radius: 0 0 1px 1px;
+  background: currentColor;
+}
+
+.cf-filter-body {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 12;
+  width: min(430px, calc(100vw - 24px));
+  max-height: 58vh;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--cf-line-strong);
+  border-radius: var(--cf-radius);
+  background: var(--cf-chrome-bg);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--cf-bg) 65%, transparent);
+}
+
+.cf-filter-help,
+.cf-filter-empty {
+  margin: 0;
+  color: var(--cf-muted);
+  font-size: var(--cf-text-sm);
+  line-height: 1.4;
+}
+
+.cf-filter-rows {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cf-filter-row {
+  display: grid;
+  grid-template-columns: 18px minmax(110px, 1fr) minmax(90px, 0.75fr);
+  align-items: center;
+  gap: 7px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--cf-line);
+}
+
+.cf-filter-row code {
+  overflow: hidden;
+  color: var(--cf-fg);
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-filter-row input[type="checkbox"] {
+  accent-color: var(--cf-focus);
+}
+
+.cf-filter-row input[type="text"] {
+  min-width: 0;
+  color: var(--cf-fg);
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-sm);
+  background: var(--cf-control-bg);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+.cf-filter-row input[type="text"]:disabled {
+  opacity: 0.5;
+}
+
+.cf-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.cf-filter-actions button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .cf-settings > summary {
   font-size: var(--cf-text-sm);
-  color: var(--cf-fg);
+  color: var(--vscode-button-secondaryForeground, var(--cf-fg));
+  background: var(--cf-control-bg);
   border: 1px solid var(--cf-line-strong);
   border-radius: 4px;
   padding: 4px 10px;
@@ -646,7 +818,8 @@ body {
 
 .cf-settings[open] > summary {
   border-color: var(--cf-focus);
-  color: var(--cf-fg-strong);
+  color: var(--vscode-list-activeSelectionForeground, var(--cf-fg-strong));
+  background: var(--cf-control-active-bg);
 }
 
 /* Popover: nổi lên trên graph, không đẩy layout khi mở. */
@@ -662,7 +835,7 @@ body {
   padding: 12px;
   border: 1px solid var(--cf-line-strong);
   border-radius: var(--cf-radius);
-  background: var(--cf-bg-raised);
+  background: var(--cf-chrome-bg);
 }
 
 .cf-setting {
@@ -693,7 +866,7 @@ body {
   font-family: inherit;
   font-size: var(--cf-text-sm);
   color: var(--cf-fg);
-  background: var(--cf-surface);
+  background: var(--cf-control-bg);
   border: 1px solid var(--cf-line-strong);
   border-radius: 4px;
   padding: 3px 6px;

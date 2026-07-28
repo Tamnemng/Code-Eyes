@@ -16,6 +16,13 @@ describe("VS Code theme integration", () => {
     expect(css).toContain("--vscode-sideBar-border");
     expect(css).toContain("color-scheme: light dark");
   });
+
+  it("toolbar controls have an opaque-looking background derived from editor theme colors", () => {
+    expect(css).toContain("--cf-control-bg: color-mix(");
+    expect(css).toContain("--cf-control-hover-bg: color-mix(");
+    expect(css).toContain("--cf-control-active-bg: color-mix(");
+    expect(css).not.toMatch(/background:\s*var\(--vscode-button-secondaryBackground/);
+  });
 });
 
 /** Tên biến bên trong `var(--x)` / `var(--x, fallback)`. */

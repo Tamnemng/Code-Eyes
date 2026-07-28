@@ -1,0 +1,252 @@
+{
+  "functionName": "operators",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: operators",
+      "code": "export function operators(",
+      "range": {
+        "startLine": 114,
+        "startCol": 0,
+        "endLine": 114,
+        "endCol": 26
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 125,
+        "startCol": 1,
+        "endLine": 125,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "clientCode !== \"A\"",
+      "code": "clientCode !== \"A\"",
+      "range": {
+        "startLine": 120,
+        "startCol": 6,
+        "endLine": 120,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode !== \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "!=",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "return",
+      "label": "return \"not-a\";",
+      "code": "return \"not-a\";",
+      "range": {
+        "startLine": 120,
+        "startCol": 26,
+        "endLine": 120,
+        "endCol": 41
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "condition",
+      "label": "region.startsWith(\"EU\")",
+      "code": "region.startsWith(\"EU\")",
+      "range": {
+        "startLine": 121,
+        "startCol": 6,
+        "endLine": 121,
+        "endCol": 29
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "region.startsWith(\"EU\")",
+        "parsed": {
+          "variable": "region",
+          "operator": "startsWith",
+          "value": "EU"
+        }
+      }
+    },
+    {
+      "id": "n_6",
+      "kind": "return",
+      "label": "return \"eu\";",
+      "code": "return \"eu\";",
+      "range": {
+        "startLine": 121,
+        "startCol": 31,
+        "endLine": 121,
+        "endCol": 43
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_7",
+      "kind": "condition",
+      "label": "[\"gold\", \"silver\"].includes(tier)",
+      "code": "[\"gold\", \"silver\"].includes(tier)",
+      "range": {
+        "startLine": 122,
+        "startCol": 6,
+        "endLine": 122,
+        "endCol": 39
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "[\"gold\", \"silver\"].includes(tier)",
+        "parsed": {
+          "variable": "tier",
+          "operator": "in",
+          "value": [
+            "gold",
+            "silver"
+          ]
+        }
+      }
+    },
+    {
+      "id": "n_8",
+      "kind": "return",
+      "label": "return \"member\";",
+      "code": "return \"member\";",
+      "range": {
+        "startLine": 122,
+        "startCol": 41,
+        "endLine": 122,
+        "endCol": 57
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_9",
+      "kind": "condition",
+      "label": "group === \"last\"",
+      "code": "group === \"last\"",
+      "range": {
+        "startLine": 123,
+        "startCol": 6,
+        "endLine": 123,
+        "endCol": 22
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "group === \"last\"",
+        "parsed": {
+          "variable": "group",
+          "operator": "==",
+          "value": "last"
+        }
+      }
+    },
+    {
+      "id": "n_10",
+      "kind": "return",
+      "label": "return \"last\";",
+      "code": "return \"last\";",
+      "range": {
+        "startLine": 123,
+        "startCol": 24,
+        "endLine": 123,
+        "endCol": 38
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_11",
+      "kind": "return",
+      "label": "return \"other\";",
+      "code": "return \"other\";",
+      "range": {
+        "startLine": 124,
+        "startCol": 2,
+        "endLine": 124,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_6",
+      "label": "true"
+    },
+    {
+      "from": "n_6",
+      "to": "n_2"
+    },
+    {
+      "from": "n_5",
+      "to": "n_7",
+      "label": "false"
+    },
+    {
+      "from": "n_7",
+      "to": "n_8",
+      "label": "true"
+    },
+    {
+      "from": "n_8",
+      "to": "n_2"
+    },
+    {
+      "from": "n_7",
+      "to": "n_9",
+      "label": "false"
+    },
+    {
+      "from": "n_9",
+      "to": "n_10",
+      "label": "true"
+    },
+    {
+      "from": "n_10",
+      "to": "n_2"
+    },
+    {
+      "from": "n_9",
+      "to": "n_11",
+      "label": "false"
+    },
+    {
+      "from": "n_11",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

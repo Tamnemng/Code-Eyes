@@ -1,0 +1,120 @@
+{
+  "functionName": "withDeadCode",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: withDeadCode",
+      "code": "export function withDeadCode(clientCode: string): string {",
+      "range": {
+        "startLine": 106,
+        "startCol": 0,
+        "endLine": 106,
+        "endCol": 58
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 112,
+        "startCol": 1,
+        "endLine": 112,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "clientCode === \"A\"",
+      "code": "clientCode === \"A\"",
+      "range": {
+        "startLine": 107,
+        "startCol": 6,
+        "endLine": 107,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "clientCode === \"A\"",
+        "parsed": {
+          "variable": "clientCode",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "return",
+      "label": "return \"A\";",
+      "code": "return \"A\";",
+      "range": {
+        "startLine": 108,
+        "startCol": 4,
+        "endLine": 108,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "return",
+      "label": "return \"other\";",
+      "code": "return \"other\";",
+      "range": {
+        "startLine": 110,
+        "startCol": 2,
+        "endLine": 110,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "statement",
+      "label": "work(\"unreachable\");",
+      "code": "work(\"unreachable\");",
+      "range": {
+        "startLine": 111,
+        "startCol": 2,
+        "endLine": 111,
+        "endCol": 22
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_2"
+    }
+  ],
+  "warnings": [
+    "unreachable code at line 111"
+  ]
+}
