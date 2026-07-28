@@ -374,6 +374,30 @@ Hai xấp xỉ ở tầng analyzer được cố tình đẩy sang tầng hiển
    `finally (1/7)`, đặt cạnh node nguồn. Đây thuần tuý là quyết định trình bày - KHÔNG
    đụng vào schema, không đụng vào filter, không đổi id trong `FlowGraph`.
 
+   > **BỔ SUNG (Giai đoạn 2, sau khi đo): điều khoản trên đã bị BÁC.** Giữ nguyên văn bản gốc
+   > ở trên để thấy lập luận ban đầu, nhưng đừng thi hành nó.
+   >
+   > 1. **Tiền đề "2 cạnh ra" sai.** Node `finally` có out-degree **1**; hub out-degree nằm ở
+   >    node **cuối thân** `finally`, và số thật là **2-3** (đo trên graph do chính analyzer
+   >    này sinh). Hệ quả: nhân bản riêng node marker như câu trên viết thì hub chỉ **tụt xuống
+   >    một node**, không giải quyết gì - phải nhân bản **cả vùng** (marker + mọi node có
+   >    `parentId` truy về nó) mới có tác dụng.
+   > 2. **Vùng lồng nhau làm fanout tăng trưởng NHÂN**, vì marker ngoài nhân theo in-degree
+   >    SAU khi vùng trong đã nhân.
+   > 3. **Đo trên codebase legacy thật thì fanout LÀM XẤU HƠN**, không tốt hơn. Giao thức đo
+   >    (đăng ký trước khi đo) và số liệu đầy đủ: `TODO.md` mục 3b. Tóm tắt: 6 hàm thật,
+   >    0/6 thắng; trường hợp tốt nhất chỉ giảm 7.5% cạnh cắt nhau (ngưỡng là 20%); trường hợp
+   >    xấu nhất - vùng `finally` **trong vòng lặp**, đúng case điều khoản này lo nhất - tăng
+   >    cạnh cắt nhau **37 lần** và tổng chiều dài cạnh **+698%**.
+   >
+   > Renderer hiện tại vì thế **KHÔNG** fanout (`FANOUT_ENABLED = false` trong
+   > `webview/model/finally-fanout.ts`). Hàm nhân bản vẫn được cài và test đầy đủ để đo lại
+   > được trên codebase khác. Thay vào đó vùng `finally` **mặc định collapse** - rẻ hơn, dùng
+   > lại cơ chế collapse, và giảm số node thật sự.
+   >
+   > Không sửa gì khác trong `analyzer/`; đoạn này thêm theo cấp phép riêng vì §14 là hợp đồng
+   > ràng buộc Giai đoạn 2 và để nguyên một điều khoản đã bị bác sẽ khiến người sau thi hành lại.
+
 3. **Ba mức hiển thị độ chắc chắn, không phải hai** (§12). Sau khi tách `parsed` khỏi
    `confidence`, `confidence: "unknown"` KHÔNG còn đồng nghĩa với "analyzer mù". Nếu vẽ
    nét đứt cho mọi node `unknown` thì phần lớn điều kiện thật (`a === "A" && b`) sẽ trông

@@ -1,0 +1,336 @@
+{
+  "functionName": "pipeline",
+  "filePath": "webview/__tests__/fixtures/b-nested-regions.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: pipeline",
+      "code": "export function pipeline(input: string): string {",
+      "range": {
+        "startLine": 10,
+        "startCol": 0,
+        "endLine": 10,
+        "endCol": 49
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 29,
+        "startCol": 1,
+        "endLine": 29,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n    try {\n      if (input === \"\") {\n        return \"empty\";\n      }\n      if (input === \"x\") {\n        return \"ex\";\n      }\n      console.log(input);\n    } finally {\n      console.log(\"inner cleanup\");\n    }\n    return \"done\";\n  } catch (err) {\n    return \"failed\";\n  } finally {\n    console.log(\"outer cleanup\");\n  }",
+      "range": {
+        "startLine": 11,
+        "startCol": 2,
+        "endLine": 28,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "catch",
+      "label": "catch (err)",
+      "code": "catch (err) {\n    return \"failed\";\n  }",
+      "range": {
+        "startLine": 24,
+        "startCol": 4,
+        "endLine": 26,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n    console.log(\"outer cleanup\");\n  }",
+      "range": {
+        "startLine": 26,
+        "startCol": 4,
+        "endLine": 28,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n      if (input === \"\") {\n        return \"empty\";\n      }\n      if (input === \"x\") {\n        return \"ex\";\n      }\n      console.log(input);\n    } finally {\n      console.log(\"inner cleanup\");\n    }",
+      "range": {
+        "startLine": 12,
+        "startCol": 4,
+        "endLine": 22,
+        "endCol": 5
+      },
+      "confidence": "certain",
+      "parentId": "n_3"
+    },
+    {
+      "id": "n_7",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n      console.log(\"inner cleanup\");\n    }",
+      "range": {
+        "startLine": 20,
+        "startCol": 6,
+        "endLine": 22,
+        "endCol": 5
+      },
+      "confidence": "certain",
+      "parentId": "n_3"
+    },
+    {
+      "id": "n_8",
+      "kind": "condition",
+      "label": "input === \"\"",
+      "code": "input === \"\"",
+      "range": {
+        "startLine": 13,
+        "startCol": 10,
+        "endLine": 13,
+        "endCol": 22
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "input === \"\"",
+        "parsed": {
+          "variable": "input",
+          "operator": "==",
+          "value": ""
+        }
+      },
+      "parentId": "n_6"
+    },
+    {
+      "id": "n_9",
+      "kind": "return",
+      "label": "return \"empty\";",
+      "code": "return \"empty\";",
+      "range": {
+        "startLine": 14,
+        "startCol": 8,
+        "endLine": 14,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "parentId": "n_6"
+    },
+    {
+      "id": "n_10",
+      "kind": "condition",
+      "label": "input === \"x\"",
+      "code": "input === \"x\"",
+      "range": {
+        "startLine": 16,
+        "startCol": 10,
+        "endLine": 16,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "input === \"x\"",
+        "parsed": {
+          "variable": "input",
+          "operator": "==",
+          "value": "x"
+        }
+      },
+      "parentId": "n_6"
+    },
+    {
+      "id": "n_11",
+      "kind": "return",
+      "label": "return \"ex\";",
+      "code": "return \"ex\";",
+      "range": {
+        "startLine": 17,
+        "startCol": 8,
+        "endLine": 17,
+        "endCol": 20
+      },
+      "confidence": "certain",
+      "parentId": "n_6"
+    },
+    {
+      "id": "n_12",
+      "kind": "statement",
+      "label": "console.log(input);",
+      "code": "console.log(input);",
+      "range": {
+        "startLine": 19,
+        "startCol": 6,
+        "endLine": 19,
+        "endCol": 25
+      },
+      "confidence": "certain",
+      "parentId": "n_6"
+    },
+    {
+      "id": "n_13",
+      "kind": "statement",
+      "label": "console.log(\"inner cleanup\");",
+      "code": "console.log(\"inner cleanup\");",
+      "range": {
+        "startLine": 21,
+        "startCol": 6,
+        "endLine": 21,
+        "endCol": 35
+      },
+      "confidence": "certain",
+      "parentId": "n_7"
+    },
+    {
+      "id": "n_14",
+      "kind": "return",
+      "label": "return \"done\";",
+      "code": "return \"done\";",
+      "range": {
+        "startLine": 23,
+        "startCol": 4,
+        "endLine": 23,
+        "endCol": 18
+      },
+      "confidence": "certain",
+      "parentId": "n_3"
+    },
+    {
+      "id": "n_15",
+      "kind": "return",
+      "label": "return \"failed\";",
+      "code": "return \"failed\";",
+      "range": {
+        "startLine": 25,
+        "startCol": 4,
+        "endLine": 25,
+        "endCol": 20
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_16",
+      "kind": "statement",
+      "label": "console.log(\"outer cleanup\");",
+      "code": "console.log(\"outer cleanup\");",
+      "range": {
+        "startLine": 27,
+        "startCol": 4,
+        "endLine": 27,
+        "endCol": 33
+      },
+      "confidence": "certain",
+      "parentId": "n_5"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "exception"
+    },
+    {
+      "from": "n_3",
+      "to": "n_6"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7",
+      "label": "exception"
+    },
+    {
+      "from": "n_6",
+      "to": "n_8"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9",
+      "label": "true"
+    },
+    {
+      "from": "n_9",
+      "to": "n_7"
+    },
+    {
+      "from": "n_8",
+      "to": "n_10",
+      "label": "false"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11",
+      "label": "true"
+    },
+    {
+      "from": "n_11",
+      "to": "n_7"
+    },
+    {
+      "from": "n_10",
+      "to": "n_12",
+      "label": "false"
+    },
+    {
+      "from": "n_12",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_13"
+    },
+    {
+      "from": "n_13",
+      "to": "n_5"
+    },
+    {
+      "from": "n_13",
+      "to": "n_4",
+      "label": "exception"
+    },
+    {
+      "from": "n_13",
+      "to": "n_14"
+    },
+    {
+      "from": "n_14",
+      "to": "n_5"
+    },
+    {
+      "from": "n_4",
+      "to": "n_15"
+    },
+    {
+      "from": "n_15",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_16"
+    },
+    {
+      "from": "n_16",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

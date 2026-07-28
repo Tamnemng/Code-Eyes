@@ -1,0 +1,304 @@
+{
+  "functionName": "shipOrder",
+  "filePath": "webview/__tests__/fixtures/a-finally-fanout.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: shipOrder",
+      "code": "export function shipOrder(order: string): string {",
+      "range": {
+        "startLine": 9,
+        "startCol": 0,
+        "endLine": 9,
+        "endCol": 50
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 26,
+        "startCol": 1,
+        "endLine": 26,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "statement",
+      "label": "let status = \"pending\";",
+      "code": "let status = \"pending\";",
+      "range": {
+        "startLine": 10,
+        "startCol": 2,
+        "endLine": 10,
+        "endCol": 25
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n    if (order === \"\") {\n      return \"empty\";\n    }\n    if (order === \"bad\") {\n      return \"rejected\";\n    }\n    if (order === \"hold\") {\n      throw new Error(\"held\");\n    }\n    status = \"ok\";\n  } finally {\n    console.log(\"audit\");\n  }",
+      "range": {
+        "startLine": 11,
+        "startCol": 2,
+        "endLine": 24,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n    console.log(\"audit\");\n  }",
+      "range": {
+        "startLine": 22,
+        "startCol": 4,
+        "endLine": 24,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "condition",
+      "label": "order === \"\"",
+      "code": "order === \"\"",
+      "range": {
+        "startLine": 12,
+        "startCol": 8,
+        "endLine": 12,
+        "endCol": 20
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "order === \"\"",
+        "parsed": {
+          "variable": "order",
+          "operator": "==",
+          "value": ""
+        }
+      },
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_7",
+      "kind": "return",
+      "label": "return \"empty\";",
+      "code": "return \"empty\";",
+      "range": {
+        "startLine": 13,
+        "startCol": 6,
+        "endLine": 13,
+        "endCol": 21
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_8",
+      "kind": "condition",
+      "label": "order === \"bad\"",
+      "code": "order === \"bad\"",
+      "range": {
+        "startLine": 15,
+        "startCol": 8,
+        "endLine": 15,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "order === \"bad\"",
+        "parsed": {
+          "variable": "order",
+          "operator": "==",
+          "value": "bad"
+        }
+      },
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_9",
+      "kind": "return",
+      "label": "return \"rejected\";",
+      "code": "return \"rejected\";",
+      "range": {
+        "startLine": 16,
+        "startCol": 6,
+        "endLine": 16,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_10",
+      "kind": "condition",
+      "label": "order === \"hold\"",
+      "code": "order === \"hold\"",
+      "range": {
+        "startLine": 18,
+        "startCol": 8,
+        "endLine": 18,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "order === \"hold\"",
+        "parsed": {
+          "variable": "order",
+          "operator": "==",
+          "value": "hold"
+        }
+      },
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_11",
+      "kind": "throw",
+      "label": "throw new Error(\"held\");",
+      "code": "throw new Error(\"held\");",
+      "range": {
+        "startLine": 19,
+        "startCol": 6,
+        "endLine": 19,
+        "endCol": 30
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_12",
+      "kind": "statement",
+      "label": "status = \"ok\";",
+      "code": "status = \"ok\";",
+      "range": {
+        "startLine": 21,
+        "startCol": 4,
+        "endLine": 21,
+        "endCol": 18
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_13",
+      "kind": "statement",
+      "label": "console.log(\"audit\");",
+      "code": "console.log(\"audit\");",
+      "range": {
+        "startLine": 23,
+        "startCol": 4,
+        "endLine": 23,
+        "endCol": 25
+      },
+      "confidence": "certain",
+      "parentId": "n_5"
+    },
+    {
+      "id": "n_14",
+      "kind": "return",
+      "label": "return status;",
+      "code": "return status;",
+      "range": {
+        "startLine": 25,
+        "startCol": 2,
+        "endLine": 25,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "exception"
+    },
+    {
+      "from": "n_4",
+      "to": "n_6"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7",
+      "label": "true"
+    },
+    {
+      "from": "n_7",
+      "to": "n_5"
+    },
+    {
+      "from": "n_6",
+      "to": "n_8",
+      "label": "false"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9",
+      "label": "true"
+    },
+    {
+      "from": "n_9",
+      "to": "n_5"
+    },
+    {
+      "from": "n_8",
+      "to": "n_10",
+      "label": "false"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11",
+      "label": "true"
+    },
+    {
+      "from": "n_11",
+      "to": "n_5",
+      "label": "exception"
+    },
+    {
+      "from": "n_10",
+      "to": "n_12",
+      "label": "false"
+    },
+    {
+      "from": "n_12",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_13"
+    },
+    {
+      "from": "n_13",
+      "to": "n_2"
+    },
+    {
+      "from": "n_13",
+      "to": "n_14"
+    },
+    {
+      "from": "n_14",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

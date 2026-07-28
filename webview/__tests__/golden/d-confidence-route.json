@@ -1,0 +1,304 @@
+{
+  "functionName": "route",
+  "filePath": "webview/__tests__/fixtures/d-confidence.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: route",
+      "code": "export function route(req: { code: string; mode: string }, flag: boolean): string {",
+      "range": {
+        "startLine": 14,
+        "startCol": 0,
+        "endLine": 14,
+        "endCol": 83
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 31,
+        "startCol": 1,
+        "endLine": 31,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "req.code === \"A\"",
+      "code": "req.code === \"A\"",
+      "range": {
+        "startLine": 15,
+        "startCol": 6,
+        "endLine": 15,
+        "endCol": 22
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "req.code === \"A\"",
+        "parsed": {
+          "variable": "req.code",
+          "operator": "==",
+          "value": "A"
+        }
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "return",
+      "label": "return \"alpha\";",
+      "code": "return \"alpha\";",
+      "range": {
+        "startLine": 16,
+        "startCol": 4,
+        "endLine": 16,
+        "endCol": 19
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "condition",
+      "label": "req.mode === \"fast\" && flag",
+      "code": "req.mode === \"fast\" && flag",
+      "range": {
+        "startLine": 18,
+        "startCol": 6,
+        "endLine": 18,
+        "endCol": 33
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "req.mode === \"fast\" && flag",
+        "parsed": {
+          "variable": "req.mode",
+          "operator": "==",
+          "value": "fast"
+        }
+      }
+    },
+    {
+      "id": "n_6",
+      "kind": "return",
+      "label": "return \"quick\";",
+      "code": "return \"quick\";",
+      "range": {
+        "startLine": 19,
+        "startCol": 4,
+        "endLine": 19,
+        "endCol": 19
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_7",
+      "kind": "condition",
+      "label": "req.code.length > 3",
+      "code": "req.code.length > 3",
+      "range": {
+        "startLine": 21,
+        "startCol": 6,
+        "endLine": 21,
+        "endCol": 25
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "req.code.length > 3"
+      }
+    },
+    {
+      "id": "n_8",
+      "kind": "return",
+      "label": "return \"long\";",
+      "code": "return \"long\";",
+      "range": {
+        "startLine": 22,
+        "startCol": 4,
+        "endLine": 22,
+        "endCol": 18
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_9",
+      "kind": "statement",
+      "label": "const label = req.code?.trim() ?? \"none\";",
+      "code": "const label = req.code?.trim() ?? \"none\";",
+      "range": {
+        "startLine": 24,
+        "startCol": 2,
+        "endLine": 24,
+        "endCol": 43
+      },
+      "confidence": "unknown"
+    },
+    {
+      "id": "n_10",
+      "kind": "condition",
+      "label": "switch (req.mode)",
+      "code": "switch (req.mode)",
+      "range": {
+        "startLine": 25,
+        "startCol": 2,
+        "endLine": 25,
+        "endCol": 19
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "req.mode"
+      }
+    },
+    {
+      "id": "n_11",
+      "kind": "switch-case",
+      "label": "case \"slow\":",
+      "code": "case \"slow\":",
+      "range": {
+        "startLine": 26,
+        "startCol": 4,
+        "endLine": 26,
+        "endCol": 16
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"slow\"",
+        "parsed": {
+          "variable": "req.mode",
+          "operator": "==",
+          "value": "slow"
+        }
+      }
+    },
+    {
+      "id": "n_12",
+      "kind": "return",
+      "label": "return \"s\" + label;",
+      "code": "return \"s\" + label;",
+      "range": {
+        "startLine": 27,
+        "startCol": 6,
+        "endLine": 27,
+        "endCol": 25
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_13",
+      "kind": "switch-case",
+      "label": "default:",
+      "code": "default:",
+      "range": {
+        "startLine": 28,
+        "startCol": 4,
+        "endLine": 28,
+        "endCol": 12
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "default"
+      }
+    },
+    {
+      "id": "n_14",
+      "kind": "return",
+      "label": "return label;",
+      "code": "return label;",
+      "range": {
+        "startLine": 29,
+        "startCol": 6,
+        "endLine": 29,
+        "endCol": 19
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_6",
+      "label": "true"
+    },
+    {
+      "from": "n_6",
+      "to": "n_2"
+    },
+    {
+      "from": "n_5",
+      "to": "n_7",
+      "label": "false"
+    },
+    {
+      "from": "n_7",
+      "to": "n_8",
+      "label": "true"
+    },
+    {
+      "from": "n_8",
+      "to": "n_2"
+    },
+    {
+      "from": "n_7",
+      "to": "n_9",
+      "label": "false"
+    },
+    {
+      "from": "n_9",
+      "to": "n_10"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11",
+      "label": "case"
+    },
+    {
+      "from": "n_11",
+      "to": "n_12"
+    },
+    {
+      "from": "n_12",
+      "to": "n_2"
+    },
+    {
+      "from": "n_10",
+      "to": "n_13",
+      "label": "default"
+    },
+    {
+      "from": "n_13",
+      "to": "n_14"
+    },
+    {
+      "from": "n_14",
+      "to": "n_2"
+    }
+  ],
+  "warnings": [
+    "implicit branch not modeled: optional chaining (?.) at line 24",
+    "implicit branch not modeled: nullish coalescing (??) at line 24"
+  ]
+}

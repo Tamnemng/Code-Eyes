@@ -4,19 +4,55 @@
   "private": true,
   "description": "VS Code extension: visualize the control flow graph of large legacy functions",
   "type": "module",
+  "main": "./dist/extension.cjs",
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeflow.visualizeFlow",
+        "title": "Visualize Control Flow",
+        "category": "CodeFlow"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codeflow.visualizeFlow",
+          "when": "editorTextFocus && resourceExtname =~ /\\.tsx?$/",
+          "group": "navigation@100"
+        }
+      ]
+    }
   },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "build:dev": "node scripts/build.mjs --dev",
+    "watch": "node scripts/build.mjs --watch",
+    "golden": "node scripts/gen-golden.mjs",
+    "measure:fanout": "node scripts/measure-fanout.mjs",
+    "dev": "vite webview/dev",
+    "measure:legacy": "node scripts/measure-legacy.mjs",
+    "import:local": "node scripts/import-local.mjs"
   },
   "dependencies": {
+    "elkjs": "^0.12.0",
     "typescript": "^5.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
+    "@types/vscode": "^1.125.0",
+    "esbuild": "^0.28.1",
+    "vite": "^7.3.6",
     "vitest": "^3.0.0"
   }
 }

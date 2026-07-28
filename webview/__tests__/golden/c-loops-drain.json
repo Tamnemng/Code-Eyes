@@ -1,0 +1,114 @@
+{
+  "functionName": "drain",
+  "filePath": "webview/__tests__/fixtures/c-loops.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: drain",
+      "code": "export function drain(n: number): number {",
+      "range": {
+        "startLine": 28,
+        "startCol": 0,
+        "endLine": 28,
+        "endCol": 42
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 34,
+        "startCol": 1,
+        "endLine": 34,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "statement",
+      "label": "let i = 0;",
+      "code": "let i = 0;",
+      "range": {
+        "startLine": 29,
+        "startCol": 2,
+        "endLine": 29,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "loop",
+      "label": "while (i < n)",
+      "code": "while (i < n)",
+      "range": {
+        "startLine": 32,
+        "startCol": 4,
+        "endLine": 32,
+        "endCol": 17
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "statement",
+      "label": "i += 1;",
+      "code": "i += 1;",
+      "range": {
+        "startLine": 31,
+        "startCol": 4,
+        "endLine": 31,
+        "endCol": 11
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "return",
+      "label": "return i;",
+      "code": "return i;",
+      "range": {
+        "startLine": 33,
+        "startCol": 2,
+        "endLine": 33,
+        "endCol": 11
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_6",
+      "label": "false"
+    },
+    {
+      "from": "n_6",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

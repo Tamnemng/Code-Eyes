@@ -1,0 +1,178 @@
+{
+  "functionName": "bailOut",
+  "filePath": "webview/__tests__/fixtures/c-loops.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: bailOut",
+      "code": "export function bailOut(rows: string[]): string {",
+      "range": {
+        "startLine": 36,
+        "startCol": 0,
+        "endLine": 36,
+        "endCol": 49
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 46,
+        "startCol": 1,
+        "endLine": 46,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "loop",
+      "label": "for (const row of rows)",
+      "code": "for (const row of rows)",
+      "range": {
+        "startLine": 37,
+        "startCol": 9,
+        "endLine": 37,
+        "endCol": 32
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n      console.log(row);\n      break outer;\n    } finally {\n      console.log(\"once\");\n    }",
+      "range": {
+        "startLine": 38,
+        "startCol": 4,
+        "endLine": 43,
+        "endCol": 5
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n      console.log(\"once\");\n    }",
+      "range": {
+        "startLine": 41,
+        "startCol": 6,
+        "endLine": 43,
+        "endCol": 5
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "statement",
+      "label": "console.log(row);",
+      "code": "console.log(row);",
+      "range": {
+        "startLine": 39,
+        "startCol": 6,
+        "endLine": 39,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_7",
+      "kind": "break",
+      "label": "break outer;",
+      "code": "break outer;",
+      "range": {
+        "startLine": 40,
+        "startCol": 6,
+        "endLine": 40,
+        "endCol": 18
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_8",
+      "kind": "statement",
+      "label": "console.log(\"once\");",
+      "code": "console.log(\"once\");",
+      "range": {
+        "startLine": 42,
+        "startCol": 6,
+        "endLine": 42,
+        "endCol": 26
+      },
+      "confidence": "certain",
+      "parentId": "n_5"
+    },
+    {
+      "id": "n_9",
+      "kind": "return",
+      "label": "return \"done\";",
+      "code": "return \"done\";",
+      "range": {
+        "startLine": 45,
+        "startCol": 2,
+        "endLine": 45,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "exception"
+    },
+    {
+      "from": "n_4",
+      "to": "n_6"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_8"
+    },
+    {
+      "from": "n_8",
+      "to": "n_2",
+      "label": "exception"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9"
+    },
+    {
+      "from": "n_3",
+      "to": "n_9",
+      "label": "false"
+    },
+    {
+      "from": "n_9",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

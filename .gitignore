@@ -5,3 +5,6 @@ coverage/
 *.vsix
 .vscode-test/
 *.log
+
+# Golden sinh từ code ngoài (import:local) - chứa source của người dùng, KHÔNG commit.
+webview/dev/local/

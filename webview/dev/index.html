@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>CodeFlow — dev harness</title>
+    <!-- styles.css được import trong main.ts, KHÔNG dùng <link>: xem ghi chú ở đầu main.ts. -->
+    <style>
+      /* Chỉ dành cho harness: thanh chọn golden. Không có trong webview thật. */
+      .cf-dev-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--cf-border);
+        background: var(--vscode-editorWidget-background, #252526);
+      }
+      .cf-dev-bar select,
+      .cf-dev-bar button {
+        font: inherit;
+        color: var(--cf-fg);
+        background: #3a3d41;
+        border: 1px solid var(--cf-border);
+        border-radius: 2px;
+        padding: 3px 8px;
+      }
+      .cf-dev-note { color: var(--cf-muted); margin-left: auto; }
+      #view { flex: 1 1 auto; min-height: 0; }
+      body { display: flex; flex-direction: column; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div class="cf-dev-bar">
+      <label for="golden">golden</label>
+      <select id="golden"></select>
+      <button id="reload" type="button">Nạp lại</button>
+      <span class="cf-dev-note">
+        dev harness — nạp golden JSON trực tiếp, không cần Extension Development Host
+      </span>
+    </div>
+    <div id="view"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

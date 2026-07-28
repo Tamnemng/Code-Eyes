@@ -1,0 +1,258 @@
+{
+  "functionName": "scan",
+  "filePath": "webview/__tests__/fixtures/c-loops.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: scan",
+      "code": "export function scan(items: string[]): number {",
+      "range": {
+        "startLine": 11,
+        "startCol": 0,
+        "endLine": 11,
+        "endCol": 47
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 26,
+        "startCol": 1,
+        "endLine": 26,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "statement",
+      "label": "let total = 0;",
+      "code": "let total = 0;",
+      "range": {
+        "startLine": 12,
+        "startCol": 2,
+        "endLine": 12,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "loop",
+      "label": "for (const item of items)",
+      "code": "for (const item of items)",
+      "range": {
+        "startLine": 13,
+        "startCol": 2,
+        "endLine": 13,
+        "endCol": 27
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "condition",
+      "label": "item === \"skip\"",
+      "code": "item === \"skip\"",
+      "range": {
+        "startLine": 14,
+        "startCol": 8,
+        "endLine": 14,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "item === \"skip\"",
+        "parsed": {
+          "variable": "item",
+          "operator": "==",
+          "value": "skip"
+        }
+      }
+    },
+    {
+      "id": "n_6",
+      "kind": "continue",
+      "label": "continue;",
+      "code": "continue;",
+      "range": {
+        "startLine": 15,
+        "startCol": 6,
+        "endLine": 15,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_7",
+      "kind": "condition",
+      "label": "item === \"stop\"",
+      "code": "item === \"stop\"",
+      "range": {
+        "startLine": 17,
+        "startCol": 8,
+        "endLine": 17,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "item === \"stop\"",
+        "parsed": {
+          "variable": "item",
+          "operator": "==",
+          "value": "stop"
+        }
+      }
+    },
+    {
+      "id": "n_8",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 18,
+        "startCol": 6,
+        "endLine": 18,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_9",
+      "kind": "condition",
+      "label": "item === \"again\"",
+      "code": "item === \"again\"",
+      "range": {
+        "startLine": 20,
+        "startCol": 8,
+        "endLine": 20,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "item === \"again\"",
+        "parsed": {
+          "variable": "item",
+          "operator": "==",
+          "value": "again"
+        }
+      }
+    },
+    {
+      "id": "n_10",
+      "kind": "continue",
+      "label": "continue;",
+      "code": "continue;",
+      "range": {
+        "startLine": 21,
+        "startCol": 6,
+        "endLine": 21,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_11",
+      "kind": "statement",
+      "label": "total += item.length;",
+      "code": "total += item.length;",
+      "range": {
+        "startLine": 23,
+        "startCol": 4,
+        "endLine": 23,
+        "endCol": 25
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_12",
+      "kind": "return",
+      "label": "return total;",
+      "code": "return total;",
+      "range": {
+        "startLine": 25,
+        "startCol": 2,
+        "endLine": 25,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "true"
+    },
+    {
+      "from": "n_5",
+      "to": "n_6",
+      "label": "true"
+    },
+    {
+      "from": "n_6",
+      "to": "n_4"
+    },
+    {
+      "from": "n_5",
+      "to": "n_7",
+      "label": "false"
+    },
+    {
+      "from": "n_7",
+      "to": "n_8",
+      "label": "true"
+    },
+    {
+      "from": "n_7",
+      "to": "n_9",
+      "label": "false"
+    },
+    {
+      "from": "n_9",
+      "to": "n_10",
+      "label": "true"
+    },
+    {
+      "from": "n_10",
+      "to": "n_4"
+    },
+    {
+      "from": "n_9",
+      "to": "n_11",
+      "label": "false"
+    },
+    {
+      "from": "n_11",
+      "to": "n_4"
+    },
+    {
+      "from": "n_8",
+      "to": "n_12"
+    },
+    {
+      "from": "n_4",
+      "to": "n_12",
+      "label": "false"
+    },
+    {
+      "from": "n_12",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

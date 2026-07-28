@@ -1,0 +1,603 @@
+{
+  "functionName": "processBatch",
+  "filePath": "webview/__tests__/fixtures/f-worst-case.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: processBatch",
+      "code": "export function processBatch(rows: string[], mode: string): number {",
+      "range": {
+        "startLine": 15,
+        "startCol": 0,
+        "endLine": 15,
+        "endCol": 68
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 50,
+        "startCol": 1,
+        "endLine": 50,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "statement",
+      "label": "let done = 0;",
+      "code": "let done = 0;",
+      "range": {
+        "startLine": 16,
+        "startCol": 2,
+        "endLine": 16,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n    for (const row of rows) {\n      try {\n        if (row === \"\") {\n          continue;\n        }\n        if (row === \"stop\") {\n          break;\n        }\n        if (row === \"bad\") {\n          throw new Error(\"bad row\");\n        }\n        if (row === \"skip\") {\n          return done;\n        }\n        done += 1;\n      } finally {\n        console.log(\"row done\");\n      }\n    }\n    if (mode === \"strict\") {\n      return done;\n    }\n    if (mode === \"loose\") {\n      return -1;\n    }\n    done += 100;\n  } catch (err) {\n    return -2;\n  } finally {\n    console.log(\"batch done\");\n  }",
+      "range": {
+        "startLine": 17,
+        "startCol": 2,
+        "endLine": 48,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "catch",
+      "label": "catch (err)",
+      "code": "catch (err) {\n    return -2;\n  }",
+      "range": {
+        "startLine": 44,
+        "startCol": 4,
+        "endLine": 46,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n    console.log(\"batch done\");\n  }",
+      "range": {
+        "startLine": 46,
+        "startCol": 4,
+        "endLine": 48,
+        "endCol": 3
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_7",
+      "kind": "loop",
+      "label": "for (const row of rows)",
+      "code": "for (const row of rows)",
+      "range": {
+        "startLine": 18,
+        "startCol": 4,
+        "endLine": 18,
+        "endCol": 27
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_8",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n        if (row === \"\") {\n          continue;\n        }\n        if (row === \"stop\") {\n          break;\n        }\n        if (row === \"bad\") {\n          throw new Error(\"bad row\");\n        }\n        if (row === \"skip\") {\n          return done;\n        }\n        done += 1;\n      } finally {\n        console.log(\"row done\");\n      }",
+      "range": {
+        "startLine": 19,
+        "startCol": 6,
+        "endLine": 35,
+        "endCol": 7
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_9",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n        console.log(\"row done\");\n      }",
+      "range": {
+        "startLine": 33,
+        "startCol": 8,
+        "endLine": 35,
+        "endCol": 7
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_10",
+      "kind": "condition",
+      "label": "row === \"\"",
+      "code": "row === \"\"",
+      "range": {
+        "startLine": 20,
+        "startCol": 12,
+        "endLine": 20,
+        "endCol": 22
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "row === \"\"",
+        "parsed": {
+          "variable": "row",
+          "operator": "==",
+          "value": ""
+        }
+      },
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_11",
+      "kind": "continue",
+      "label": "continue;",
+      "code": "continue;",
+      "range": {
+        "startLine": 21,
+        "startCol": 10,
+        "endLine": 21,
+        "endCol": 19
+      },
+      "confidence": "certain",
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_12",
+      "kind": "condition",
+      "label": "row === \"stop\"",
+      "code": "row === \"stop\"",
+      "range": {
+        "startLine": 23,
+        "startCol": 12,
+        "endLine": 23,
+        "endCol": 26
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "row === \"stop\"",
+        "parsed": {
+          "variable": "row",
+          "operator": "==",
+          "value": "stop"
+        }
+      },
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_13",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 24,
+        "startCol": 10,
+        "endLine": 24,
+        "endCol": 16
+      },
+      "confidence": "certain",
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_14",
+      "kind": "condition",
+      "label": "row === \"bad\"",
+      "code": "row === \"bad\"",
+      "range": {
+        "startLine": 26,
+        "startCol": 12,
+        "endLine": 26,
+        "endCol": 25
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "row === \"bad\"",
+        "parsed": {
+          "variable": "row",
+          "operator": "==",
+          "value": "bad"
+        }
+      },
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_15",
+      "kind": "throw",
+      "label": "throw new Error(\"bad row\");",
+      "code": "throw new Error(\"bad row\");",
+      "range": {
+        "startLine": 27,
+        "startCol": 10,
+        "endLine": 27,
+        "endCol": 37
+      },
+      "confidence": "certain",
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_16",
+      "kind": "condition",
+      "label": "row === \"skip\"",
+      "code": "row === \"skip\"",
+      "range": {
+        "startLine": 29,
+        "startCol": 12,
+        "endLine": 29,
+        "endCol": 26
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "row === \"skip\"",
+        "parsed": {
+          "variable": "row",
+          "operator": "==",
+          "value": "skip"
+        }
+      },
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_17",
+      "kind": "return",
+      "label": "return done;",
+      "code": "return done;",
+      "range": {
+        "startLine": 30,
+        "startCol": 10,
+        "endLine": 30,
+        "endCol": 22
+      },
+      "confidence": "certain",
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_18",
+      "kind": "statement",
+      "label": "done += 1;",
+      "code": "done += 1;",
+      "range": {
+        "startLine": 32,
+        "startCol": 8,
+        "endLine": 32,
+        "endCol": 18
+      },
+      "confidence": "certain",
+      "parentId": "n_8"
+    },
+    {
+      "id": "n_19",
+      "kind": "statement",
+      "label": "console.log(\"row done\");",
+      "code": "console.log(\"row done\");",
+      "range": {
+        "startLine": 34,
+        "startCol": 8,
+        "endLine": 34,
+        "endCol": 32
+      },
+      "confidence": "certain",
+      "parentId": "n_9"
+    },
+    {
+      "id": "n_20",
+      "kind": "condition",
+      "label": "mode === \"strict\"",
+      "code": "mode === \"strict\"",
+      "range": {
+        "startLine": 37,
+        "startCol": 8,
+        "endLine": 37,
+        "endCol": 25
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "mode === \"strict\"",
+        "parsed": {
+          "variable": "mode",
+          "operator": "==",
+          "value": "strict"
+        }
+      },
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_21",
+      "kind": "return",
+      "label": "return done;",
+      "code": "return done;",
+      "range": {
+        "startLine": 38,
+        "startCol": 6,
+        "endLine": 38,
+        "endCol": 18
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_22",
+      "kind": "condition",
+      "label": "mode === \"loose\"",
+      "code": "mode === \"loose\"",
+      "range": {
+        "startLine": 40,
+        "startCol": 8,
+        "endLine": 40,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "mode === \"loose\"",
+        "parsed": {
+          "variable": "mode",
+          "operator": "==",
+          "value": "loose"
+        }
+      },
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_23",
+      "kind": "return",
+      "label": "return -1;",
+      "code": "return -1;",
+      "range": {
+        "startLine": 41,
+        "startCol": 6,
+        "endLine": 41,
+        "endCol": 16
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_24",
+      "kind": "statement",
+      "label": "done += 100;",
+      "code": "done += 100;",
+      "range": {
+        "startLine": 43,
+        "startCol": 4,
+        "endLine": 43,
+        "endCol": 16
+      },
+      "confidence": "certain",
+      "parentId": "n_4"
+    },
+    {
+      "id": "n_25",
+      "kind": "return",
+      "label": "return -2;",
+      "code": "return -2;",
+      "range": {
+        "startLine": 45,
+        "startCol": 4,
+        "endLine": 45,
+        "endCol": 14
+      },
+      "confidence": "certain",
+      "parentId": "n_5"
+    },
+    {
+      "id": "n_26",
+      "kind": "statement",
+      "label": "console.log(\"batch done\");",
+      "code": "console.log(\"batch done\");",
+      "range": {
+        "startLine": 47,
+        "startCol": 4,
+        "endLine": 47,
+        "endCol": 30
+      },
+      "confidence": "certain",
+      "parentId": "n_6"
+    },
+    {
+      "id": "n_27",
+      "kind": "return",
+      "label": "return done;",
+      "code": "return done;",
+      "range": {
+        "startLine": 49,
+        "startCol": 2,
+        "endLine": 49,
+        "endCol": 14
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5",
+      "label": "exception"
+    },
+    {
+      "from": "n_4",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_8",
+      "label": "true"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9",
+      "label": "exception"
+    },
+    {
+      "from": "n_8",
+      "to": "n_10"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11",
+      "label": "true"
+    },
+    {
+      "from": "n_11",
+      "to": "n_9"
+    },
+    {
+      "from": "n_10",
+      "to": "n_12",
+      "label": "false"
+    },
+    {
+      "from": "n_12",
+      "to": "n_13",
+      "label": "true"
+    },
+    {
+      "from": "n_13",
+      "to": "n_9"
+    },
+    {
+      "from": "n_12",
+      "to": "n_14",
+      "label": "false"
+    },
+    {
+      "from": "n_14",
+      "to": "n_15",
+      "label": "true"
+    },
+    {
+      "from": "n_15",
+      "to": "n_9",
+      "label": "exception"
+    },
+    {
+      "from": "n_14",
+      "to": "n_16",
+      "label": "false"
+    },
+    {
+      "from": "n_16",
+      "to": "n_17",
+      "label": "true"
+    },
+    {
+      "from": "n_17",
+      "to": "n_9"
+    },
+    {
+      "from": "n_16",
+      "to": "n_18",
+      "label": "false"
+    },
+    {
+      "from": "n_18",
+      "to": "n_9"
+    },
+    {
+      "from": "n_9",
+      "to": "n_19"
+    },
+    {
+      "from": "n_19",
+      "to": "n_7"
+    },
+    {
+      "from": "n_19",
+      "to": "n_6"
+    },
+    {
+      "from": "n_19",
+      "to": "n_5",
+      "label": "exception"
+    },
+    {
+      "from": "n_19",
+      "to": "n_20"
+    },
+    {
+      "from": "n_7",
+      "to": "n_20",
+      "label": "false"
+    },
+    {
+      "from": "n_20",
+      "to": "n_21",
+      "label": "true"
+    },
+    {
+      "from": "n_21",
+      "to": "n_6"
+    },
+    {
+      "from": "n_20",
+      "to": "n_22",
+      "label": "false"
+    },
+    {
+      "from": "n_22",
+      "to": "n_23",
+      "label": "true"
+    },
+    {
+      "from": "n_23",
+      "to": "n_6"
+    },
+    {
+      "from": "n_22",
+      "to": "n_24",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_25"
+    },
+    {
+      "from": "n_25",
+      "to": "n_6"
+    },
+    {
+      "from": "n_24",
+      "to": "n_6"
+    },
+    {
+      "from": "n_6",
+      "to": "n_26"
+    },
+    {
+      "from": "n_26",
+      "to": "n_2"
+    },
+    {
+      "from": "n_26",
+      "to": "n_27"
+    },
+    {
+      "from": "n_27",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

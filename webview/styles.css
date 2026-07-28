@@ -1,0 +1,588 @@
+/* webview/styles.css
+   Nguyên tắc: node KHÔNG tô kín màu bão hoà. Nền node là một mặt tối dùng chung, còn `kind`
+   được mang bởi HÌNH (8 shape) + màu VIỀN. Màu bão hoà chỉ dành cho accent: rẽ nhánh,
+   ngoại lệ, đường thoát. Tô kín 14 màu là cách nhanh nhất để graph 500 node thành cái mền rách.
+
+   Mọi màu lấy từ biến theme VS Code trước, fallback là bảng dark tự định nghĩa (dev harness
+   chạy trong browser thường nên fallback là đường đi thật, không phải dự phòng chết). */
+
+:root {
+  color-scheme: dark;
+
+  /* --- nền: gần đen, hơi lệch xanh, KHÔNG đen tuyệt đối --- */
+  --cf-bg: var(--vscode-editor-background, #12141a);
+  --cf-bg-raised: var(--vscode-editorWidget-background, #171a21);
+  /* Mặt node tối hơn nền một bậc -> node trông lõm vào, viền 1px mang toàn bộ hình. */
+  --cf-surface: #0c0e13;
+  --cf-surface-hover: #151922;
+
+  /* --- chữ: xám sáng, không trắng tinh --- */
+  --cf-fg: var(--vscode-editor-foreground, #c6ccd8);
+  --cf-fg-strong: #e2e7ef;
+  --cf-muted: var(--vscode-descriptionForeground, #79828f);
+
+  --cf-line: #262c37;
+  --cf-line-strong: #39414f;
+  --cf-focus: var(--vscode-focusBorder, #5b9dd9);
+  --cf-danger: var(--vscode-errorForeground, #d97070);
+
+  /* --- accent theo kind: CHỈ dùng cho viền và mũi tên --- */
+  --cf-accent-entry: var(--vscode-charts-green, #6fbf8f);
+  --cf-accent-exit: var(--vscode-charts-purple, #a08ad0);
+  --cf-accent-statement: #4a5361;
+  --cf-accent-condition: var(--vscode-charts-blue, #6fa8dc);
+  --cf-accent-loop: var(--vscode-charts-yellow, #d8b366);
+  --cf-accent-switch-case: #7fb3d5;
+  --cf-accent-try: #8a94a6;
+  --cf-accent-catch: var(--vscode-charts-orange, #d9925f);
+  --cf-accent-finally: #c98a5e;
+  --cf-accent-return: #9d8ec9;
+  --cf-accent-throw: var(--vscode-charts-red, #d97070);
+  --cf-accent-break: #c97b7b;
+  --cf-accent-continue: #c9b06b;
+  --cf-accent-call: #79a9c9;
+
+  /* --- fill theo kind: tint rất nhẹ trên --cf-surface, đủ để nhận ra nhóm --- */
+  --cf-fill-entry: #0b1310;
+  --cf-fill-exit: #100e18;
+  --cf-fill-statement: var(--cf-surface);
+  --cf-fill-condition: #0b1017;
+  --cf-fill-loop: #12100a;
+  --cf-fill-switch-case: #0b1016;
+  --cf-fill-try: #0d0f14;
+  --cf-fill-catch: #140f0b;
+  --cf-fill-finally: #130f0c;
+  --cf-fill-return: #100e16;
+  --cf-fill-throw: #150c0c;
+  --cf-fill-break: #140d0d;
+  --cf-fill-continue: #12100b;
+  --cf-fill-call: #0b1015;
+
+  /* --- typography: mono cho code, sans cho chrome. Ba cỡ, hết. --- */
+  --cf-font-mono: var(--vscode-editor-font-family, ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace);
+  --cf-font-sans: var(--vscode-font-family, "Inter", system-ui, -apple-system, sans-serif);
+  --cf-text-sm: 11px;
+  --cf-text-md: 12px;
+  --cf-text-lg: 13px;
+
+  --cf-radius: 6px;
+
+  /* Do `settings.ts` điều khiển lúc chạy (view.ts đặt lại trên phần tử canvas / root).
+     Khai báo ở đây để có giá trị mặc định khi chưa ai đặt. */
+  --cf-text-node: 12px;
+  --cf-edge-width: 1.1;
+}
+
+/* ---------- bảng màu (settings.palette) ---------- */
+
+[data-cf-palette="soft"] {
+  --cf-accent-condition: #7f9fbf;
+  --cf-accent-loop: #bfa878;
+  --cf-accent-catch: #bf9070;
+  --cf-accent-finally: #b58a6a;
+  --cf-accent-throw: #bf8080;
+  --cf-accent-return: #9a91b8;
+  --cf-accent-entry: #7fb096;
+  --cf-accent-exit: #9a90bf;
+  --cf-line-strong: #333a45;
+}
+
+[data-cf-palette="contrast"] {
+  --cf-fg: #eef2f8;
+  --cf-fg-strong: #ffffff;
+  --cf-muted: #9aa4b2;
+  --cf-line: #3a4250;
+  --cf-line-strong: #5a657a;
+  --cf-accent-condition: #4aa3ff;
+  --cf-accent-loop: #ffc73d;
+  --cf-accent-catch: #ff9c47;
+  --cf-accent-finally: #ff8f3d;
+  --cf-accent-throw: #ff5f5f;
+  --cf-accent-return: #b98cff;
+  --cf-accent-entry: #3ddc84;
+  --cf-accent-exit: #c07bff;
+  --cf-accent-statement: #6b7789;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--cf-font-sans);
+  font-size: var(--cf-text-lg);
+  color: var(--cf-fg);
+  background: var(--cf-bg);
+}
+
+.cf-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+}
+
+/* ---------- chrome ---------- */
+
+.cf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--cf-line);
+  background: var(--cf-bg-raised);
+}
+
+.cf-title {
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-lg);
+  color: var(--cf-fg-strong);
+}
+
+.cf-stats {
+  font-size: var(--cf-text-sm);
+  color: var(--cf-muted);
+  margin-right: auto;
+}
+
+.cf-toolbar button {
+  font-family: inherit;
+  font-size: var(--cf-text-sm);
+  color: var(--cf-fg);
+  background: transparent;
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.cf-toolbar button:hover {
+  background: var(--cf-surface-hover);
+  border-color: var(--cf-focus);
+  color: var(--cf-fg-strong);
+}
+
+.cf-toolbar button:focus-visible {
+  outline: 1px solid var(--cf-focus);
+  outline-offset: 1px;
+}
+
+/* Cảnh báo phải dễ thấy nhưng KHÔNG chắn graph: một dòng khi đóng, viền trái làm dấu. */
+.cf-warnings {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--cf-line);
+  border-left: 2px solid var(--cf-accent-loop);
+  background: var(--cf-bg-raised);
+  font-size: var(--cf-text-sm);
+  max-height: 28vh;
+  overflow: auto;
+}
+
+.cf-warnings summary {
+  cursor: pointer;
+  color: var(--cf-accent-loop);
+}
+
+.cf-warnings ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--cf-muted);
+}
+
+.cf-warnings li {
+  margin: 3px 0;
+  line-height: 1.5;
+}
+
+.cf-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cf-canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  background: var(--cf-bg);
+}
+
+.cf-canvas.cf-dragging {
+  cursor: grabbing;
+}
+
+/* ---------- panel chi tiết ---------- */
+
+.cf-detail {
+  flex: 0 0 340px;
+  border-left: 1px solid var(--cf-line);
+  background: var(--cf-bg-raised);
+  padding: 14px 16px;
+  overflow: auto;
+}
+
+.cf-detail h2 {
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-lg);
+  font-weight: 600;
+  color: var(--cf-fg-strong);
+  margin: 0 0 12px;
+  word-break: break-word;
+}
+
+.cf-detail-row {
+  display: flex;
+  gap: 10px;
+  font-size: var(--cf-text-md);
+  padding: 3px 0;
+}
+
+.cf-detail-key {
+  color: var(--cf-muted);
+  min-width: 82px;
+  flex: 0 0 auto;
+}
+
+.cf-detail-value {
+  font-family: var(--cf-font-mono);
+  color: var(--cf-fg);
+  word-break: break-word;
+}
+
+.cf-detail-note {
+  font-size: var(--cf-text-sm);
+  color: var(--cf-muted);
+  line-height: 1.55;
+  margin: 12px 0;
+  padding-left: 9px;
+  border-left: 1px solid var(--cf-line-strong);
+}
+
+.cf-detail-warn {
+  color: var(--cf-accent-loop);
+  border-left-color: var(--cf-accent-loop);
+}
+
+.cf-detail-empty {
+  font-size: var(--cf-text-md);
+  color: var(--cf-muted);
+}
+
+.cf-error {
+  font-size: var(--cf-text-md);
+  color: var(--cf-danger);
+}
+
+.cf-detail-code {
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-sm);
+  line-height: 1.6;
+  color: var(--cf-fg);
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-line);
+  border-radius: var(--cf-radius);
+  padding: 10px 12px;
+  margin: 12px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.cf-jump {
+  font-family: inherit;
+  font-size: var(--cf-text-sm);
+  color: var(--cf-fg-strong);
+  background: transparent;
+  border: 1px solid var(--cf-focus);
+  border-radius: 4px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.cf-jump:hover {
+  background: color-mix(in srgb, var(--cf-focus) 18%, transparent);
+}
+
+/* ---------- graph: cạnh ---------- */
+
+.cf-edge {
+  fill: none;
+  stroke: var(--cf-line-strong);
+  stroke-width: var(--cf-edge-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* KHÔNG transition: trên graph vài trăm cạnh, transition làm mỗi lần pan/hover phải
+     nội suy hàng trăm phần tử - đó là nguồn lag rõ nhất. */
+}
+
+/* Chỉ cạnh dính node đang chọn mới sáng lên. Mặc định mọi cạnh đều mờ như nhau -
+   graph 500 node mà cạnh nào cũng sáng thì không đọc được cạnh nào. */
+.cf-edge-active {
+  stroke: var(--cf-focus);
+  stroke-width: calc(var(--cf-edge-width) * 1.7);
+}
+
+/* Cạnh quay lui (SEMANTICS §14.1): phải đọc ra ngay là quay lui. */
+.cf-edge-back {
+  stroke: var(--cf-accent-loop);
+  stroke-dasharray: 4 4;
+  opacity: 0.75;
+}
+
+.cf-edge-back.cf-edge-active {
+  opacity: 1;
+  stroke-width: calc(var(--cf-edge-width) * 1.7);
+}
+
+.cf-arrow {
+  fill: var(--cf-line-strong);
+}
+
+.cf-arrow-back {
+  fill: var(--cf-accent-loop);
+}
+
+.cf-edge-label {
+  font-family: var(--cf-font-sans);
+  font-size: 10px;
+  fill: var(--cf-muted);
+}
+
+.cf-edge-label-bg {
+  fill: var(--cf-bg);
+}
+
+.cf-edge-label-true {
+  fill: var(--cf-accent-entry);
+}
+
+.cf-edge-label-false {
+  fill: var(--cf-accent-throw);
+}
+
+.cf-edge-label-exception {
+  fill: var(--cf-accent-catch);
+}
+
+/* ---------- graph: node ---------- */
+
+.cf-node {
+  cursor: pointer;
+}
+
+/* `fill` khai báo TRONG CSS, không phải presentation attribute: `var()` trong attribute của
+   SVG không đáng tin (rơi về đen). `--cf-node-fill` do svg.ts đặt inline theo kind. */
+.cf-node .cf-shape {
+  fill: var(--cf-node-fill, var(--cf-surface));
+  stroke: var(--cf-node-accent, var(--cf-line-strong));
+  stroke-width: 1;
+  /* KHÔNG transition - xem ghi chú ở .cf-edge. */
+}
+
+.cf-node:hover .cf-shape {
+  fill: var(--cf-surface-hover);
+  stroke-width: 1.4;
+}
+
+.cf-node-label {
+  font-family: var(--cf-font-mono);
+  font-size: var(--cf-text-node);
+  fill: var(--cf-fg);
+  pointer-events: none;
+}
+
+.cf-node:hover .cf-node-label {
+  fill: var(--cf-fg-strong);
+}
+
+.cf-accent {
+  fill: none;
+  stroke: var(--cf-node-accent, var(--cf-line-strong));
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+/* accent theo kind - CHỈ đổi màu viền, không tô kín thân node */
+.cf-node-entry { --cf-node-accent: var(--cf-accent-entry); }
+.cf-node-exit { --cf-node-accent: var(--cf-accent-exit); }
+.cf-node-statement { --cf-node-accent: var(--cf-accent-statement); }
+.cf-node-condition { --cf-node-accent: var(--cf-accent-condition); }
+.cf-node-loop { --cf-node-accent: var(--cf-accent-loop); }
+.cf-node-switch-case { --cf-node-accent: var(--cf-accent-switch-case); }
+.cf-node-try { --cf-node-accent: var(--cf-accent-try); }
+.cf-node-catch { --cf-node-accent: var(--cf-accent-catch); }
+.cf-node-finally { --cf-node-accent: var(--cf-accent-finally); }
+.cf-node-return { --cf-node-accent: var(--cf-accent-return); }
+.cf-node-throw { --cf-node-accent: var(--cf-accent-throw); }
+.cf-node-break { --cf-node-accent: var(--cf-accent-break); }
+.cf-node-continue { --cf-node-accent: var(--cf-accent-continue); }
+.cf-node-call { --cf-node-accent: var(--cf-accent-call); }
+
+/* BA mức viền (SEMANTICS §14.3), không phải hai:
+   - solid          : certain, analyzer hiểu trọn
+   - solid-inferred : unknown + có parsed -> vẫn liền, nhưng mảnh hơn + dấu ◐
+   - dashed         : unknown, không parsed -> analyzer thật sự không đọc được */
+.cf-border-solid .cf-shape {
+  stroke-dasharray: none;
+}
+
+.cf-border-solid-inferred .cf-shape {
+  stroke-dasharray: none;
+  stroke-width: 0.7;
+}
+
+.cf-border-dashed .cf-shape {
+  stroke-dasharray: 3 3;
+}
+
+.cf-inferred-mark {
+  font-family: var(--cf-font-sans);
+  font-size: 9px;
+  fill: var(--cf-node-accent, var(--cf-muted));
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* selected: viền accent + một vòng sáng mảnh. Không đổ bóng nặng. */
+.cf-node.cf-selected .cf-shape {
+  stroke: var(--cf-focus);
+  stroke-width: 2;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--cf-focus) 55%, transparent));
+}
+
+.cf-node:focus-visible {
+  outline: none;
+}
+
+.cf-node:focus-visible .cf-shape {
+  stroke: var(--cf-focus);
+  stroke-width: 2;
+}
+
+.cf-badge rect {
+  fill: var(--cf-bg-raised);
+  stroke: var(--cf-focus);
+  stroke-width: 1;
+}
+
+.cf-badge text {
+  font-family: var(--cf-font-sans);
+  font-size: 10px;
+  fill: var(--cf-focus);
+  pointer-events: none;
+}
+
+.cf-toggle circle {
+  fill: var(--cf-bg-raised);
+  stroke: var(--cf-line-strong);
+  stroke-width: 1;
+  transition: stroke 120ms ease;
+}
+
+.cf-toggle text {
+  font-family: var(--cf-font-sans);
+  font-size: 11px;
+  fill: var(--cf-muted);
+  pointer-events: none;
+}
+
+.cf-toggle:hover circle {
+  stroke: var(--cf-focus);
+}
+
+.cf-toggle:hover text {
+  fill: var(--cf-fg-strong);
+}
+
+/* ---------- bảng tuỳ chỉnh hiển thị ---------- */
+
+.cf-settings {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.cf-settings > summary {
+  font-size: var(--cf-text-sm);
+  color: var(--cf-fg);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cf-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cf-settings[open] > summary {
+  border-color: var(--cf-focus);
+  color: var(--cf-fg-strong);
+}
+
+/* Popover: nổi lên trên graph, không đẩy layout khi mở. */
+.cf-settings-body {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--cf-line-strong);
+  border-radius: var(--cf-radius);
+  background: var(--cf-bg-raised);
+}
+
+.cf-setting {
+  display: grid;
+  grid-template-columns: 68px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--cf-text-sm);
+}
+
+.cf-setting-name {
+  color: var(--cf-muted);
+}
+
+.cf-setting-value {
+  font-family: var(--cf-font-mono);
+  color: var(--cf-fg);
+  text-align: right;
+}
+
+.cf-setting input[type="range"] {
+  width: 100%;
+  accent-color: var(--cf-focus);
+}
+
+.cf-setting select {
+  grid-column: 2 / span 2;
+  font-family: inherit;
+  font-size: var(--cf-text-sm);
+  color: var(--cf-fg);
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.cf-setting-reset {
+  align-self: flex-start;
+}
+
+/* Đang chạy ELK: graph mờ đi + con trỏ chờ, để không tưởng là treo. */
+.cf-canvas.cf-busy {
+  opacity: 0.45;
+  cursor: progress;
+}

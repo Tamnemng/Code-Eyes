@@ -1,0 +1,450 @@
+{
+  "functionName": "everything",
+  "filePath": "webview/__tests__/fixtures/e-all-kinds.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: everything",
+      "code": "export function everything(items: string[], mode: string): number {",
+      "range": {
+        "startLine": 17,
+        "startCol": 0,
+        "endLine": 17,
+        "endCol": 67
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 43,
+        "startCol": 1,
+        "endLine": 43,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "statement",
+      "label": "let total = 0;",
+      "code": "let total = 0;",
+      "range": {
+        "startLine": 18,
+        "startCol": 2,
+        "endLine": 18,
+        "endCol": 16
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_4",
+      "kind": "call",
+      "label": "bump",
+      "code": "(n: number) => n + 1",
+      "range": {
+        "startLine": 19,
+        "startCol": 15,
+        "endLine": 19,
+        "endCol": 35
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "loop",
+      "label": "for (const item of items)",
+      "code": "for (const item of items)",
+      "range": {
+        "startLine": 20,
+        "startCol": 2,
+        "endLine": 20,
+        "endCol": 27
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "condition",
+      "label": "item === \"skip\"",
+      "code": "item === \"skip\"",
+      "range": {
+        "startLine": 21,
+        "startCol": 8,
+        "endLine": 21,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "item === \"skip\"",
+        "parsed": {
+          "variable": "item",
+          "operator": "==",
+          "value": "skip"
+        }
+      }
+    },
+    {
+      "id": "n_7",
+      "kind": "continue",
+      "label": "continue;",
+      "code": "continue;",
+      "range": {
+        "startLine": 22,
+        "startCol": 6,
+        "endLine": 22,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_8",
+      "kind": "condition",
+      "label": "item === \"stop\"",
+      "code": "item === \"stop\"",
+      "range": {
+        "startLine": 24,
+        "startCol": 8,
+        "endLine": 24,
+        "endCol": 23
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "item === \"stop\"",
+        "parsed": {
+          "variable": "item",
+          "operator": "==",
+          "value": "stop"
+        }
+      }
+    },
+    {
+      "id": "n_9",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 25,
+        "startCol": 6,
+        "endLine": 25,
+        "endCol": 12
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_10",
+      "kind": "condition",
+      "label": "switch (mode)",
+      "code": "switch (mode)",
+      "range": {
+        "startLine": 27,
+        "startCol": 4,
+        "endLine": 27,
+        "endCol": 17
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "mode"
+      }
+    },
+    {
+      "id": "n_11",
+      "kind": "switch-case",
+      "label": "case \"fast\":",
+      "code": "case \"fast\":",
+      "range": {
+        "startLine": 28,
+        "startCol": 6,
+        "endLine": 28,
+        "endCol": 18
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case \"fast\"",
+        "parsed": {
+          "variable": "mode",
+          "operator": "==",
+          "value": "fast"
+        }
+      }
+    },
+    {
+      "id": "n_12",
+      "kind": "statement",
+      "label": "total = bump(total);",
+      "code": "total = bump(total);",
+      "range": {
+        "startLine": 29,
+        "startCol": 8,
+        "endLine": 29,
+        "endCol": 28
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_13",
+      "kind": "break",
+      "label": "break;",
+      "code": "break;",
+      "range": {
+        "startLine": 30,
+        "startCol": 8,
+        "endLine": 30,
+        "endCol": 14
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_14",
+      "kind": "switch-case",
+      "label": "default:",
+      "code": "default:",
+      "range": {
+        "startLine": 31,
+        "startCol": 6,
+        "endLine": 31,
+        "endCol": 14
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "default"
+      }
+    },
+    {
+      "id": "n_15",
+      "kind": "statement",
+      "label": "total += item.length;",
+      "code": "total += item.length;",
+      "range": {
+        "startLine": 32,
+        "startCol": 8,
+        "endLine": 32,
+        "endCol": 29
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_16",
+      "kind": "try",
+      "label": "try",
+      "code": "try {\n      total += 1;\n    } catch (err) {\n      throw new Error(\"nope\");\n    } finally {\n      total += 0;\n    }",
+      "range": {
+        "startLine": 34,
+        "startCol": 4,
+        "endLine": 40,
+        "endCol": 5
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_17",
+      "kind": "catch",
+      "label": "catch (err)",
+      "code": "catch (err) {\n      throw new Error(\"nope\");\n    }",
+      "range": {
+        "startLine": 36,
+        "startCol": 6,
+        "endLine": 38,
+        "endCol": 5
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_18",
+      "kind": "finally",
+      "label": "finally",
+      "code": "finally {\n      total += 0;\n    }",
+      "range": {
+        "startLine": 38,
+        "startCol": 6,
+        "endLine": 40,
+        "endCol": 5
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_19",
+      "kind": "statement",
+      "label": "total += 1;",
+      "code": "total += 1;",
+      "range": {
+        "startLine": 35,
+        "startCol": 6,
+        "endLine": 35,
+        "endCol": 17
+      },
+      "confidence": "certain",
+      "parentId": "n_16"
+    },
+    {
+      "id": "n_20",
+      "kind": "throw",
+      "label": "throw new Error(\"nope\");",
+      "code": "throw new Error(\"nope\");",
+      "range": {
+        "startLine": 37,
+        "startCol": 6,
+        "endLine": 37,
+        "endCol": 30
+      },
+      "confidence": "certain",
+      "parentId": "n_17"
+    },
+    {
+      "id": "n_21",
+      "kind": "statement",
+      "label": "total += 0;",
+      "code": "total += 0;",
+      "range": {
+        "startLine": 39,
+        "startCol": 6,
+        "endLine": 39,
+        "endCol": 17
+      },
+      "confidence": "certain",
+      "parentId": "n_18"
+    },
+    {
+      "id": "n_22",
+      "kind": "return",
+      "label": "return total;",
+      "code": "return total;",
+      "range": {
+        "startLine": 42,
+        "startCol": 2,
+        "endLine": 42,
+        "endCol": 15
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_6",
+      "label": "true"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7",
+      "label": "true"
+    },
+    {
+      "from": "n_7",
+      "to": "n_5"
+    },
+    {
+      "from": "n_6",
+      "to": "n_8",
+      "label": "false"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9",
+      "label": "true"
+    },
+    {
+      "from": "n_8",
+      "to": "n_10",
+      "label": "false"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11",
+      "label": "case"
+    },
+    {
+      "from": "n_11",
+      "to": "n_12"
+    },
+    {
+      "from": "n_12",
+      "to": "n_13"
+    },
+    {
+      "from": "n_10",
+      "to": "n_14",
+      "label": "default"
+    },
+    {
+      "from": "n_14",
+      "to": "n_15"
+    },
+    {
+      "from": "n_15",
+      "to": "n_16"
+    },
+    {
+      "from": "n_13",
+      "to": "n_16"
+    },
+    {
+      "from": "n_16",
+      "to": "n_17",
+      "label": "exception"
+    },
+    {
+      "from": "n_16",
+      "to": "n_19"
+    },
+    {
+      "from": "n_17",
+      "to": "n_20"
+    },
+    {
+      "from": "n_20",
+      "to": "n_18",
+      "label": "exception"
+    },
+    {
+      "from": "n_19",
+      "to": "n_18"
+    },
+    {
+      "from": "n_18",
+      "to": "n_21"
+    },
+    {
+      "from": "n_21",
+      "to": "n_2",
+      "label": "exception"
+    },
+    {
+      "from": "n_21",
+      "to": "n_5"
+    },
+    {
+      "from": "n_9",
+      "to": "n_22"
+    },
+    {
+      "from": "n_5",
+      "to": "n_22",
+      "label": "false"
+    },
+    {
+      "from": "n_22",
+      "to": "n_2"
+    }
+  ],
+  "warnings": [
+    "nested function body not inlined: bump at line 19"
+  ]
+}
