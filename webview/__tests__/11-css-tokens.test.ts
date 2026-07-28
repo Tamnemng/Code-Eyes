@@ -139,6 +139,15 @@ describe("styles.css - các class mà svg.ts và detail.ts dựa vào", () => {
     );
   });
 
+  it("Filter và Settings loại trừ nhau, không thể mở chồng hai popup", () => {
+    expect(viewSource).toMatch(
+      /filterBox\.addEventListener\("toggle",[\s\S]*?settingsBox\.open = false/,
+    );
+    expect(viewSource).toMatch(
+      /settingsBox\.addEventListener\("toggle",[\s\S]*?filterBox\.open = false/,
+    );
+  });
+
   it("KHÔNG transition trên phần tử graph - đó là nguồn lag khi pan graph lớn", () => {
     for (const selector of [".cf-edge", ".cf-node .cf-shape"] as const) {
       const block = new RegExp(`\\${selector.replace(/ /g, "\\s+")}\\s*\\{([^}]*)\\}`).exec(css);

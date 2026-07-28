@@ -6,8 +6,10 @@
 // chỉ là CSS, đổi xong vẽ lại là đủ.
 
 export type Palette = "default" | "soft" | "contrast";
+export type Locale = "vi" | "en";
 
 export const PALETTES: readonly Palette[] = ["default", "soft", "contrast"];
+export const LOCALES: readonly Locale[] = ["vi", "en"];
 
 export interface DisplaySettings {
   /** Hệ số nhân kích thước node. 1 = mặc định. */
@@ -17,6 +19,7 @@ export interface DisplaySettings {
   /** Độ dày đường nối, px. */
   edgeWidth: number;
   palette: Palette;
+  locale: Locale;
 }
 
 export const LIMITS = {
@@ -26,7 +29,7 @@ export const LIMITS = {
 } as const;
 
 export function defaultSettings(): DisplaySettings {
-  return { nodeScale: 1, fontSize: 12, edgeWidth: 1.1, palette: "default" };
+  return { nodeScale: 1, fontSize: 12, edgeWidth: 1.1, palette: "default", locale: "vi" };
 }
 
 function clamp(value: unknown, limits: { min: number; max: number }, fallback: number): number {
@@ -41,6 +44,7 @@ export function clampSettings(raw: Partial<DisplaySettings>): DisplaySettings {
     fontSize: clamp(raw.fontSize, LIMITS.fontSize, base.fontSize),
     edgeWidth: clamp(raw.edgeWidth, LIMITS.edgeWidth, base.edgeWidth),
     palette: raw.palette !== undefined && PALETTES.includes(raw.palette) ? raw.palette : base.palette,
+    locale: raw.locale !== undefined && LOCALES.includes(raw.locale) ? raw.locale : base.locale,
   };
 }
 
@@ -69,5 +73,6 @@ export function restoreSettings(raw: unknown): DisplaySettings {
     fontSize: typeof raw["fontSize"] === "number" ? raw["fontSize"] : undefined,
     edgeWidth: typeof raw["edgeWidth"] === "number" ? raw["edgeWidth"] : undefined,
     palette: typeof raw["palette"] === "string" ? (raw["palette"] as Palette) : undefined,
+    locale: typeof raw["locale"] === "string" ? (raw["locale"] as Locale) : undefined,
   });
 }

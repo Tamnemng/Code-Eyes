@@ -17,6 +17,7 @@ import type { FlowGraph } from "../shared/types";
 import { collectFilterCandidates, type FilterCandidate } from "../filter/candidates";
 import { filterGraph, filterStats } from "../filter/filterGraph";
 import { DEFAULT_DETAIL_WIDTH, detailWidthFromPointer } from "./detail-pane";
+import { messagesFor } from "./i18n";
 import type { Layout } from "./layout/run-elk";
 import { runLayout } from "./layout/run-elk";
 import { markBackEdges } from "./model/back-edges";
@@ -33,7 +34,7 @@ import { FANOUT_ENABLED, fanoutFinallyRegions } from "./model/finally-fanout";
 import { renderDetail } from "./render/detail";
 import { attachInteractions, type InteractHandles } from "./render/interact";
 import { renderGraph } from "./render/svg";
-import type { DisplaySettings } from "./settings";
+import type { DisplaySettings, Locale, Palette } from "./settings";
 import { LIMITS, affectsLayout, clampSettings, defaultSettings } from "./settings";
 import type { ViewState } from "./state";
 import { graphKeyOf, initialState } from "./state";
@@ -62,7 +63,9 @@ export interface View {
 interface FilterControl {
   candidate: FilterCandidate;
   enabled: HTMLInputElement;
+  variableLabel: HTMLElement;
   value: HTMLInputElement;
+  suggestionToggle: HTMLButtonElement | undefined;
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -75,13 +78,20 @@ function button(label: string, className = ""): HTMLButtonElement {
   return element;
 }
 
+function selectOption(select: HTMLSelectElement, value: string): HTMLOptionElement {
+  const option = document.createElement("option");
+  option.value = value;
+  select.append(option);
+  return option;
+}
+
 /** Một hàng slider trong bảng tuỳ chỉnh. */
 function slider(
   label: string,
   limits: { min: number; max: number; step: number },
   value: number,
   onInput: (next: number) => void,
-): { row: HTMLElement; input: HTMLInputElement; readout: HTMLElement } {
+): { row: HTMLElement; name: HTMLElement; input: HTMLInputElement; readout: HTMLElement } {
   const row = document.createElement("label");
   row.className = "cf-setting";
   const name = document.createElement("span");
@@ -102,7 +112,7 @@ function slider(
     onInput(next);
   });
   row.append(name, input, readout);
-  return { row, input, readout };
+  return { row, name, input, readout };
 }
 
 export function createView(root: HTMLElement, options: ViewOptions): View {
@@ -112,6 +122,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   if (!(runtimeStyle instanceof HTMLStyleElement)) {
     throw new Error("thiếu #cf-runtime-settings để áp dụng settings dưới CSP nghiêm");
   }
+  let messages = messagesFor(options.restored?.settings.locale ?? defaultSettings().locale);
 
   const toolbar = document.createElement("header");
   toolbar.className = "cf-toolbar";
@@ -119,8 +130,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   navigation.className = "cf-navigation";
   const backButton = button("←", "cf-back");
   backButton.hidden = true;
-  backButton.title = "Quay lại graph trước";
-  backButton.setAttribute("aria-label", "Quay lại graph trước");
+  backButton.title = messages.back;
+  backButton.setAttribute("aria-label", messages.back);
   backButton.addEventListener("click", options.onNavigateBack);
   const breadcrumbs = document.createElement("span");
   breadcrumbs.className = "cf-breadcrumbs";
@@ -130,16 +141,16 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   heading.textContent = "CodeFlow";
   const stats = document.createElement("span");
   stats.className = "cf-stats";
-  stats.textContent = "Đặt con trỏ trong một hàm rồi chạy Visualize Control Flow.";
+  stats.textContent = "";
   const expandButton = button("⊞");
-  expandButton.title = "Mở hết";
-  expandButton.setAttribute("aria-label", "Mở hết");
+  expandButton.title = messages.expandAll;
+  expandButton.setAttribute("aria-label", messages.expandAll);
   const collapseButton = button("⊟");
-  collapseButton.title = "Thu gọn mặc định";
-  collapseButton.setAttribute("aria-label", "Thu gọn mặc định");
+  collapseButton.title = messages.collapseDefault;
+  collapseButton.setAttribute("aria-label", messages.collapseDefault);
   const resetButton = button("⟳");
-  resetButton.title = "Reset view";
-  resetButton.setAttribute("aria-label", "Reset view");
+  resetButton.title = messages.resetView;
+  resetButton.setAttribute("aria-label", messages.resetView);
 
   const filterReadout = document.createElement("span");
   filterReadout.className = "cf-filter-readout";
@@ -147,8 +158,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   const filterBox = document.createElement("details");
   filterBox.className = "cf-filter";
   const filterSummary = document.createElement("summary");
-  filterSummary.title = "Lọc graph theo ràng buộc biến";
-  filterSummary.setAttribute("aria-label", "Lọc graph theo ràng buộc biến");
+  filterSummary.title = messages.filterTitle;
+  filterSummary.setAttribute("aria-label", messages.filterTitle);
   const filterIcon = document.createElement("span");
   filterIcon.className = "cf-filter-icon";
   filterIcon.setAttribute("aria-hidden", "true");
@@ -156,17 +167,16 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   const filterBody = document.createElement("div");
   filterBody.className = "cf-filter-body";
   const filterHeading = document.createElement("strong");
-  filterHeading.textContent = "Ràng buộc biến";
+  filterHeading.textContent = messages.filterHeading;
   const filterHelp = document.createElement("p");
   filterHelp.className = "cf-filter-help";
-  filterHelp.textContent =
-    "Chỉ liệt kê biến analyzer suy luận an toàn. Biến unknown vẫn có thể lọc một chiều.";
+  filterHelp.textContent = messages.filterHelp;
   const filterRows = document.createElement("div");
   filterRows.className = "cf-filter-rows";
   const filterActions = document.createElement("div");
   filterActions.className = "cf-filter-actions";
-  const clearFilterButton = button("Xoá");
-  const applyFilterButton = button("Lọc");
+  const clearFilterButton = button(messages.clear);
+  const applyFilterButton = button(messages.applyFilter);
   filterActions.append(clearFilterButton, applyFilterButton);
   filterBody.append(filterHeading, filterHelp, filterRows, filterActions);
   filterBox.append(filterSummary, filterBody);
@@ -176,8 +186,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   const settingsSummary = document.createElement("summary");
   settingsSummary.textContent = "⚙";
   const settingsBody = document.createElement("div");
-  settingsSummary.title = "Tuỳ chỉnh hiển thị";
-  settingsSummary.setAttribute("aria-label", "Tuỳ chỉnh hiển thị");
+  settingsSummary.title = messages.settingsTitle;
+  settingsSummary.setAttribute("aria-label", messages.settingsTitle);
   settingsBody.className = "cf-settings-body";
   settingsBox.append(settingsSummary, settingsBody);
 
@@ -207,7 +217,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   detailResizer.className = "cf-detail-resizer";
   detailResizer.setAttribute("role", "separator");
   detailResizer.setAttribute("aria-orientation", "vertical");
-  detailResizer.setAttribute("aria-label", "Đổi chiều rộng chi tiết node");
+  detailResizer.setAttribute("aria-label", messages.detailResize);
   detailResizer.tabIndex = 0;
   detailResizer.hidden = true;
   const detail = document.createElement("aside");
@@ -236,6 +246,18 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   let renderSourceGraph: (() => void) | undefined;
 
   const persist = (): void => options.onStateChange(state);
+
+  // Hai popover cùng neo ở góc phải toolbar nên tuyệt đối không được mở chồng nhau.
+  // Dùng `toggle` thay vì chỉ bắt click trên summary để cả thay đổi bằng bàn phím cũng nhất quán.
+  filterBox.addEventListener("toggle", () => {
+    if (filterBox.open) settingsBox.open = false;
+    else closeOpenSuggestions?.();
+  });
+  settingsBox.addEventListener("toggle", () => {
+    if (!settingsBox.open) return;
+    filterBox.open = false;
+    closeOpenSuggestions?.();
+  });
 
   root.addEventListener("pointerdown", (event) => {
     const target = event.target;
@@ -295,6 +317,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         onClose: closeDetail,
         callees: calleeLinks,
         onOpenCallee: options.onOpenCallee,
+        locale: state.settings.locale,
       });
     } else {
       detail.replaceChildren();
@@ -334,10 +357,13 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     const key = layoutKeyOf(state.settings);
 
     const visible = view.graph.nodes.length;
-    stats.textContent =
-      `${sourceNodeCount(base)} node · ${base.edges.length} edge` +
-      (visible === base.nodes.length ? "" : ` · hiện ${visible}/${base.nodes.length}`) +
-      (visible > RENDER_GUARD ? " · graph lớn, layout có thể chậm" : "");
+    stats.textContent = messages.stats(
+      sourceNodeCount(base),
+      base.edges.length,
+      visible,
+      base.nodes.length,
+      visible > RENDER_GUARD,
+    );
 
     paintDetail(false);
 
@@ -384,7 +410,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         },
         (error: unknown) => {
           canvas.classList.remove("cf-busy");
-          stats.textContent = `layout thất bại: ${String(error)}`;
+          stats.textContent = messages.layoutFailed(String(error));
         },
       );
     });
@@ -400,7 +426,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     if (candidates.length === 0) {
       const empty = document.createElement("p");
       empty.className = "cf-filter-empty";
-      empty.textContent = "Hàm này chưa có biến nào đủ an toàn để lọc.";
+      empty.textContent = messages.filterEmpty;
       filterRows.append(empty);
       applyFilterButton.disabled = true;
       clearFilterButton.disabled = Object.keys(state.constraints).length === 0;
@@ -416,15 +442,14 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       enabled.type = "checkbox";
       const active = Object.prototype.hasOwnProperty.call(state.constraints, candidate.variable);
       enabled.checked = active;
-      enabled.setAttribute("aria-label", `Bật ràng buộc ${candidate.variable}`);
+      enabled.setAttribute("aria-label", messages.enableConstraint(candidate.variable));
 
       const variable = document.createElement("code");
       variable.textContent = candidate.variable;
-      variable.title =
-        `${candidate.certainNodes} điều kiện certain` +
-        (candidate.unknownNodes > 0
-          ? `, ${candidate.unknownNodes} điều kiện suy luận một chiều`
-          : "");
+      variable.title = messages.candidateConfidence(
+        candidate.certainNodes,
+        candidate.unknownNodes,
+      );
 
       const value = document.createElement("input");
       value.type = "text";
@@ -434,15 +459,13 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         candidate.values[0] ?? "",
       );
       value.disabled = !active;
-      value.placeholder =
-        candidate.values.length > 0
-          ? `chọn hoặc nhập (${candidate.values.length} gợi ý)`
-          : "giá trị";
-      value.setAttribute("aria-label", `Giá trị của ${candidate.variable}`);
+      value.placeholder = messages.filterPlaceholder(candidate.values.length);
+      value.setAttribute("aria-label", messages.valueFor(candidate.variable));
 
       const valueControl = document.createElement("span");
       valueControl.className = "cf-filter-value-control";
       valueControl.append(value);
+      let suggestionToggle: HTMLButtonElement | undefined;
 
       if (candidate.values.length > 0) {
         // Native datalist lọc option theo text đang có. Combobox custom giữ nguyên text hiện tại
@@ -452,8 +475,9 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         toggle.className = "cf-filter-suggestion-toggle";
         toggle.disabled = !active;
         toggle.textContent = "▾";
-        toggle.setAttribute("aria-label", `Mở gợi ý cho ${candidate.variable}`);
+        toggle.setAttribute("aria-label", messages.openSuggestions(candidate.variable));
         toggle.setAttribute("aria-expanded", "false");
+        suggestionToggle = toggle;
 
         const suggestions = document.createElement("span");
         suggestions.className = "cf-filter-suggestions";
@@ -517,7 +541,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
           value.disabled = false;
         }
       });
-      filterControls.push({ candidate, enabled, value });
+      filterControls.push({ candidate, enabled, variableLabel: variable, value, suggestionToggle });
       filterRows.append(row);
     });
   };
@@ -554,13 +578,16 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     else applyCssSettings();
   };
 
-  const nodeScaleRow = slider("Cỡ node", LIMITS.nodeScale, state.settings.nodeScale, (value) =>
-    applySettings({ nodeScale: value }),
+  const nodeScaleRow = slider(
+    messages.nodeScale,
+    LIMITS.nodeScale,
+    state.settings.nodeScale,
+    (value) => applySettings({ nodeScale: value }),
   );
-  const fontRow = slider("Cỡ chữ", LIMITS.fontSize, state.settings.fontSize, (value) =>
+  const fontRow = slider(messages.fontSize, LIMITS.fontSize, state.settings.fontSize, (value) =>
     applySettings({ fontSize: value }),
   );
-  const edgeRow = slider("Đường nối", LIMITS.edgeWidth, state.settings.edgeWidth, (value) =>
+  const edgeRow = slider(messages.edgeWidth, LIMITS.edgeWidth, state.settings.edgeWidth, (value) =>
     applySettings({ edgeWidth: value }),
   );
 
@@ -568,25 +595,33 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   paletteRow.className = "cf-setting";
   const paletteName = document.createElement("span");
   paletteName.className = "cf-setting-name";
-  paletteName.textContent = "Bảng màu";
+  paletteName.textContent = messages.palette;
   const paletteSelect = document.createElement("select");
-  for (const [value, label] of [
-    ["default", "Mặc định"],
-    ["soft", "Dịu"],
-    ["contrast", "Tương phản cao"],
-  ] as const) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = label;
-    paletteSelect.append(option);
-  }
+  const paletteOptions: Record<Palette, HTMLOptionElement> = {
+    default: selectOption(paletteSelect, "default"),
+    soft: selectOption(paletteSelect, "soft"),
+    contrast: selectOption(paletteSelect, "contrast"),
+  };
   paletteSelect.value = state.settings.palette;
   paletteSelect.addEventListener("change", () => {
-    applySettings({ palette: clampSettings({ palette: paletteSelect.value as never }).palette });
+    applySettings({ palette: clampSettings({ palette: paletteSelect.value as Palette }).palette });
   });
   paletteRow.append(paletteName, paletteSelect);
 
-  const resetSettings = button("Về mặc định", "cf-setting-reset");
+  const languageRow = document.createElement("label");
+  languageRow.className = "cf-setting";
+  const languageName = document.createElement("span");
+  languageName.className = "cf-setting-name";
+  languageName.textContent = messages.language;
+  const languageSelect = document.createElement("select");
+  const localeOptions: Record<Locale, HTMLOptionElement> = {
+    vi: selectOption(languageSelect, "vi"),
+    en: selectOption(languageSelect, "en"),
+  };
+  languageSelect.value = state.settings.locale;
+  languageRow.append(languageName, languageSelect);
+
+  const resetSettings = button(messages.resetSettings, "cf-setting-reset");
   resetSettings.addEventListener("click", () => {
     const base = defaultSettings();
     nodeScaleRow.input.value = String(base.nodeScale);
@@ -596,10 +631,91 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     edgeRow.input.value = String(base.edgeWidth);
     edgeRow.readout.textContent = String(base.edgeWidth);
     paletteSelect.value = base.palette;
+    languageSelect.value = base.locale;
     applySettings(base);
+    applyUiLanguage();
   });
 
-  settingsBody.append(nodeScaleRow.row, fontRow.row, edgeRow.row, paletteRow, resetSettings);
+  settingsBody.append(
+    nodeScaleRow.row,
+    fontRow.row,
+    edgeRow.row,
+    paletteRow,
+    languageRow,
+    resetSettings,
+  );
+
+  const applyUiLanguage = (): void => {
+    messages = messagesFor(state.settings.locale);
+    document.documentElement.lang = state.settings.locale;
+
+    backButton.title = messages.back;
+    backButton.setAttribute("aria-label", messages.back);
+    expandButton.title = messages.expandAll;
+    expandButton.setAttribute("aria-label", messages.expandAll);
+    collapseButton.title = messages.collapseDefault;
+    collapseButton.setAttribute("aria-label", messages.collapseDefault);
+    resetButton.title = messages.resetView;
+    resetButton.setAttribute("aria-label", messages.resetView);
+    filterSummary.title = messages.filterTitle;
+    filterSummary.setAttribute("aria-label", messages.filterTitle);
+    filterHeading.textContent = messages.filterHeading;
+    filterHelp.textContent = messages.filterHelp;
+    clearFilterButton.textContent = messages.clear;
+    applyFilterButton.textContent = messages.applyFilter;
+    settingsSummary.title = messages.settingsTitle;
+    settingsSummary.setAttribute("aria-label", messages.settingsTitle);
+    detailResizer.setAttribute("aria-label", messages.detailResize);
+
+    nodeScaleRow.name.textContent = messages.nodeScale;
+    fontRow.name.textContent = messages.fontSize;
+    edgeRow.name.textContent = messages.edgeWidth;
+    paletteName.textContent = messages.palette;
+    paletteOptions.default.textContent = messages.paletteDefault;
+    paletteOptions.soft.textContent = messages.paletteSoft;
+    paletteOptions.contrast.textContent = messages.paletteContrast;
+    languageName.textContent = messages.language;
+    localeOptions.vi.textContent = messages.vietnamese;
+    localeOptions.en.textContent = messages.english;
+    resetSettings.textContent = messages.resetSettings;
+
+    const filterEmpty = filterRows.querySelector<HTMLElement>(".cf-filter-empty");
+    if (filterEmpty !== null) filterEmpty.textContent = messages.filterEmpty;
+    for (const control of filterControls) {
+      control.enabled.setAttribute(
+        "aria-label",
+        messages.enableConstraint(control.candidate.variable),
+      );
+      control.variableLabel.title = messages.candidateConfidence(
+        control.candidate.certainNodes,
+        control.candidate.unknownNodes,
+      );
+      control.value.placeholder = messages.filterPlaceholder(control.candidate.values.length);
+      control.value.setAttribute("aria-label", messages.valueFor(control.candidate.variable));
+      control.suggestionToggle?.setAttribute(
+        "aria-label",
+        messages.openSuggestions(control.candidate.variable),
+      );
+    }
+
+    if (sourceGraph !== undefined) {
+      const filtered = filterGraph(sourceGraph, state.constraints);
+      const summary = filterStats(sourceGraph, filtered);
+      if (Object.keys(state.constraints).length > 0) {
+        filterReadout.textContent = messages.hiddenNodes(summary.hidden, summary.total);
+      }
+      renderWarnings(filtered);
+      renderGraphView(false);
+    }
+  };
+
+  languageSelect.addEventListener("change", () => {
+    const locale = clampSettings({ locale: languageSelect.value as Locale }).locale;
+    languageSelect.value = locale;
+    applySettings({ locale });
+    applyUiLanguage();
+  });
+  applyUiLanguage();
 
   // ---- tương tác ----
 
@@ -655,6 +771,36 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     renderGraphView(false);
   });
 
+  const renderWarnings = (filtered: FlowGraph): void => {
+    warnings.replaceChildren();
+    const notes = [...filtered.warnings];
+    if (
+      base !== undefined &&
+      (sourceNodeCount(base) > USER_THRESHOLD || base.nodes.length > RENDER_GUARD)
+    ) {
+      notes.unshift(
+        messages.largeGraphWarning(
+          sourceNodeCount(base),
+          USER_THRESHOLD,
+          base.nodes.length,
+          RENDER_GUARD,
+        ),
+      );
+    }
+    warnings.hidden = notes.length === 0;
+    if (notes.length === 0) return;
+
+    const warningSummary = document.createElement("summary");
+    warningSummary.textContent = messages.warningCount(notes.length);
+    const list = document.createElement("ul");
+    for (const note of notes) {
+      const item = document.createElement("li");
+      item.textContent = note;
+      list.append(item);
+    }
+    warnings.append(warningSummary, list);
+  };
+
   renderSourceGraph = () => {
     const next = sourceGraph;
     if (next === undefined) return;
@@ -700,7 +846,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     const summary = filterStats(next, filtered);
     const hasConstraints = Object.keys(state.constraints).length > 0;
     filterReadout.hidden = !hasConstraints;
-    filterReadout.textContent = `Đang ẩn ${summary.hidden}/${summary.total}`;
+    filterReadout.textContent = messages.hiddenNodes(summary.hidden, summary.total);
     filterBox.classList.toggle("cf-filter-active", hasConstraints);
     populateFilterControls(next);
 
@@ -708,28 +854,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     cachedLayout = undefined;
     cachedKey = "";
 
-    warnings.replaceChildren();
-    const notes = [...filtered.warnings];
-    if (sourceNodeCount(base) > USER_THRESHOLD || base.nodes.length > RENDER_GUARD) {
-      notes.unshift(
-        `Graph lớn (${sourceNodeCount(base)} node > ${USER_THRESHOLD}, hoặc ` +
-          `${base.nodes.length} node vẽ > ${RENDER_GUARD}) - đã thu gọn về tầng ngoài cùng. ` +
-          "Lưu ý: collapse chỉ phủ try/catch/finally nên trên nhiều hàm nó không giúp gì " +
-          "(xem TODO.md mục 1).",
-      );
-    }
-    warnings.hidden = notes.length === 0;
-    if (notes.length > 0) {
-      const warningSummary = document.createElement("summary");
-      warningSummary.textContent = `${notes.length} cảnh báo`;
-      const list = document.createElement("ul");
-      for (const note of notes) {
-        const item = document.createElement("li");
-        item.textContent = note;
-        list.append(item);
-      }
-      warnings.append(warningSummary, list);
-    }
+    renderWarnings(filtered);
 
     renderGraphView(true);
   };
@@ -749,7 +874,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       base = undefined;
       cachedLayout = undefined;
       cachedKey = "";
-      heading.textContent = "Không dựng được graph";
+      heading.textContent = messages.graphError;
       stats.textContent = "";
       filterReadout.hidden = true;
       filterBox.open = false;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   LIMITS,
+  LOCALES,
   PALETTES,
   affectsLayout,
   clampSettings,
@@ -12,11 +13,12 @@ import {
 
 describe("clampSettings", () => {
   it("giá trị hợp lệ đi qua nguyên vẹn", () => {
-    expect(clampSettings({ nodeScale: 1.5, fontSize: 14, edgeWidth: 2, palette: "soft" })).toEqual({
+    expect(clampSettings({ nodeScale: 1.5, fontSize: 14, edgeWidth: 2, palette: "soft", locale: "en" })).toEqual({
       nodeScale: 1.5,
       fontSize: 14,
       edgeWidth: 2,
       palette: "soft",
+      locale: "en",
     });
   });
 
@@ -41,6 +43,12 @@ describe("clampSettings", () => {
   it("palette lạ -> default", () => {
     // @ts-expect-error - palette của bản webview cũ có thể không còn tồn tại
     expect(clampSettings({ palette: "neon" }).palette).toBe("default");
+  });
+
+  it("ngôn ngữ chỉ nhận vi/en, giá trị lạ trở về tiếng Việt", () => {
+    expect(clampSettings({ locale: "en" }).locale).toBe("en");
+    // @ts-expect-error - state cũ hoặc hỏng có thể chứa locale lạ
+    expect(clampSettings({ locale: "fr" }).locale).toBe("vi");
   });
 
   it("bỏ trống -> đúng mặc định", () => {
@@ -88,6 +96,7 @@ describe("affectsLayout", () => {
     const base = defaultSettings();
     expect(affectsLayout(base, { ...base, edgeWidth: 3 })).toBe(false);
     expect(affectsLayout(base, { ...base, palette: "contrast" })).toBe(false);
+    expect(affectsLayout(base, { ...base, locale: "en" })).toBe(false);
   });
 
   it("không đổi gì -> false", () => {
@@ -100,5 +109,11 @@ describe("PALETTES", () => {
     for (const palette of PALETTES) {
       expect(clampSettings({ palette }).palette).toBe(palette);
     }
+  });
+});
+
+describe("LOCALES", () => {
+  it("có đúng hai ngôn ngữ Việt và Anh", () => {
+    expect(LOCALES).toEqual(["vi", "en"]);
   });
 });

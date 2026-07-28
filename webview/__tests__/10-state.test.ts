@@ -32,6 +32,7 @@ describe("serializeState / restoreState - round-trip", () => {
     state.selectedSourceId = "n_12";
     state.transform = { x: -40, y: 15, scale: 2 };
     state.constraints = { clientCode: "NUTRICARE", region: "EU" };
+    state.settings.locale = "en";
 
     const restored = restoreState(JSON.parse(JSON.stringify(serializeState(state))));
     expect(restored.graphKey).toBe("/src/a.ts#Svc.route");
@@ -39,6 +40,7 @@ describe("serializeState / restoreState - round-trip", () => {
     expect(restored.selectedSourceId).toBe("n_12");
     expect(restored.transform).toEqual({ x: -40, y: 15, scale: 2 });
     expect(restored.constraints).toEqual({ clientCode: "NUTRICARE", region: "EU" });
+    expect(restored.settings.locale).toBe("en");
   });
 
   it("không chọn gì -> phục hồi thành undefined, không phải null", () => {

@@ -3,16 +3,10 @@
 
 import type { CalleeLink } from "../../shared/protocol";
 import type { FlowNode } from "../../shared/types";
+import { messagesFor } from "../i18n";
 import type { DisplayGraph } from "../model/display-graph";
 import { borderFor } from "../model/node-style";
-
-const BORDER_EXPLANATION: Record<ReturnType<typeof borderFor>, string> = {
-  solid: "Analyzer hiểu trọn node này.",
-  "solid-inferred":
-    "Suy luận MỘT CHIỀU: điều kiện phức hợp có một hạng tử đọc được. " +
-    "Filter chỉ được cắt nhánh true khi hạng tử đó chắc chắn false (SEMANTICS §12).",
-  dashed: "Analyzer KHÔNG đọc được điều kiện này. Cả hai nhánh phải giữ.",
-};
+import type { Locale } from "../settings";
 
 function row(label: string, value: string): HTMLElement {
   const wrapper = document.createElement("div");
@@ -32,6 +26,7 @@ export interface DetailOptions {
   onClose: () => void;
   callees: readonly CalleeLink[];
   onOpenCallee: (targetId: string) => void;
+  locale: Locale;
 }
 
 export function renderDetail(
@@ -41,11 +36,12 @@ export function renderDetail(
   options: DetailOptions,
 ): void {
   panel.replaceChildren();
+  const messages = messagesFor(options.locale).detail;
 
   if (sourceId === undefined) {
     const empty = document.createElement("p");
     empty.className = "cf-detail-empty";
-    empty.textContent = "Chọn một node để xem code đầy đủ.";
+    empty.textContent = messages.selectNode;
     panel.append(empty);
     return;
   }
@@ -55,7 +51,7 @@ export function renderDetail(
   if (node === undefined) {
     const gone = document.createElement("p");
     gone.className = "cf-detail-empty";
-    gone.textContent = "Node đã chọn không còn trong graph đang hiển thị.";
+    gone.textContent = messages.missingNode;
     panel.append(gone);
     return;
   }
@@ -67,7 +63,7 @@ export function renderDetail(
   const close = document.createElement("button");
   close.type = "button";
   close.className = "cf-detail-close";
-  close.setAttribute("aria-label", "Đóng chi tiết node");
+  close.setAttribute("aria-label", messages.close);
   close.textContent = "×";
   close.addEventListener("click", options.onClose);
   header.append(title, close);
@@ -77,7 +73,7 @@ export function renderDetail(
   panel.append(
     row("kind", node.kind),
     row("confidence", node.confidence),
-    row("dòng", `${node.range.startLine}–${node.range.endLine}`),
+    row(messages.line, `${node.range.startLine}–${node.range.endLine}`),
   );
   if (node.condition !== undefined) {
     panel.append(row("condition", node.condition.raw));
@@ -85,7 +81,7 @@ export function renderDetail(
       row(
         "parsed",
         node.condition.parsed === undefined
-          ? "(không suy luận được)"
+          ? messages.unparsed
           : `${node.condition.parsed.variable} ${node.condition.parsed.operator} ` +
             `${JSON.stringify(node.condition.parsed.value)}`,
       ),
@@ -94,7 +90,12 @@ export function renderDetail(
 
   const note = document.createElement("p");
   note.className = "cf-detail-note";
-  note.textContent = BORDER_EXPLANATION[border];
+  note.textContent =
+    border === "solid"
+      ? messages.borderSolid
+      : border === "solid-inferred"
+        ? messages.borderInferred
+        : messages.borderDashed;
   panel.append(note);
 
   // Bản sao fanout: người dùng thấy `finally (3/7)` có nhiều mũi tên ra sẽ tưởng là bug.
@@ -102,17 +103,13 @@ export function renderDetail(
   if (copies.length > 1) {
     const fanout = document.createElement("p");
     fanout.className = "cf-detail-note cf-detail-warn";
-    fanout.textContent =
-      `Node này được vẽ thành ${copies.length} bản sao (một bản cho mỗi đường vào). ` +
-      "Mỗi bản giữ CẢ các mũi tên ra, nên một return sớm vẫn 'thấy' đường chảy tiếp sau " +
-      "khối try. Đó là over-approximation có chủ ý của analyzer (SEMANTICS §7), không phải " +
-      "bug: thà báo thừa hơn báo thiếu. Trong FlowGraph nó vẫn là MỘT node.";
+    fanout.textContent = messages.fanout(copies.length);
     panel.append(fanout);
   }
 
   const code = document.createElement("pre");
   code.className = "cf-detail-code";
-  code.textContent = node.code === "" ? "(không có source)" : node.code;
+  code.textContent = node.code === "" ? messages.noSource : node.code;
   panel.append(code);
 
   const callees = options.callees.filter((callee) => callee.nodeId === node.id);
@@ -124,7 +121,7 @@ export function renderDetail(
       open.type = "button";
       open.className = "cf-open-callee";
       open.textContent = `↗ ${callee.label}()`;
-      open.title = `Mở source của ${callee.label}`;
+      open.title = messages.openSource(callee.label);
       open.addEventListener("click", () => options.onOpenCallee(callee.targetId));
       callActions.append(open);
     }
@@ -134,7 +131,7 @@ export function renderDetail(
   const jump = document.createElement("button");
   jump.type = "button";
   jump.className = "cf-jump";
-  jump.textContent = `Jump to line ${node.range.startLine}`;
+  jump.textContent = messages.jumpToLine(node.range.startLine);
   jump.addEventListener("click", () => options.onJump(sourceId));
   panel.append(jump);
 }
