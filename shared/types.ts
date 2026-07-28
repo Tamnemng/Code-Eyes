@@ -24,6 +24,15 @@ export interface FlowNode {
     raw: string;
     /** Chỉ điền khi phân tích chắc chắn được. Nếu không, để undefined. */
     parsed?: { variable: string; operator: "==" | "!=" | "in" | "startsWith"; value: string | string[] };
+    /**
+     * Các phép so sánh parse được trong chuỗi `&&`.
+     * Mỗi hạng tử false chứng minh cả biểu thức false; một hạng tử true chưa chứng minh biểu thức true.
+     */
+    parsedConjuncts?: Array<{
+      variable: string;
+      operator: "==" | "!=" | "in" | "startsWith";
+      value: string | string[];
+    }>;
   };
   confidence: "certain" | "unknown";
   parentId?: string;             // để collapse theo scope

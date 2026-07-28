@@ -38,6 +38,9 @@ const TARGETS: ReadonlyArray<{ file: string; functions: readonly string[] }> = [
       "terminalLoop",
       "withDeadCode",
       "operators",
+      "compoundWarehouse",
+      "optionalClient",
+      "routeTask",
     ],
   },
 ];

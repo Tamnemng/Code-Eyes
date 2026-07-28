@@ -24,7 +24,11 @@ import { RENDER_GUARD, USER_THRESHOLD, initialCollapsedIds } from "./model/auto-
 import { applyCollapse } from "./model/collapse";
 import type { DisplayGraph } from "./model/display-graph";
 import { sourceNodeCount, toDisplayGraph } from "./model/display-graph";
-import { reconcileSameGraphState } from "./model/filter-state";
+import {
+  appliedConstraintValue,
+  filterInputValue,
+  reconcileSameGraphState,
+} from "./model/filter-state";
 import { FANOUT_ENABLED, fanoutFinallyRegions } from "./model/finally-fanout";
 import { renderDetail } from "./render/detail";
 import { attachInteractions, type InteractHandles } from "./render/interact";
@@ -227,10 +231,22 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   let sourceGraph: FlowGraph | undefined;
   let sourceContext: GraphContext | undefined;
   let filterControls: FilterControl[] = [];
-  let filterListGeneration = 0;
+  let openSuggestionControl: HTMLElement | undefined;
+  let closeOpenSuggestions: (() => void) | undefined;
   let renderSourceGraph: (() => void) | undefined;
 
   const persist = (): void => options.onStateChange(state);
+
+  root.addEventListener("pointerdown", (event) => {
+    const target = event.target;
+    if (
+      openSuggestionControl !== undefined &&
+      target instanceof Node &&
+      !openSuggestionControl.contains(target)
+    ) {
+      closeOpenSuggestions?.();
+    }
+  });
 
   /** Mọi thứ ẢNH HƯỞNG layout. Selection và màu sắc cố tình KHÔNG có trong này. */
   const layoutKeyOf = (settings: DisplaySettings): string =>
@@ -377,9 +393,9 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   // ---- filter theo condition.parsed ----
 
   const populateFilterControls = (graph: FlowGraph): void => {
+    closeOpenSuggestions?.();
     filterRows.replaceChildren();
     filterControls = [];
-    filterListGeneration += 1;
     const candidates = collectFilterCandidates(graph);
     if (candidates.length === 0) {
       const empty = document.createElement("p");
@@ -393,7 +409,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
 
     applyFilterButton.disabled = false;
     clearFilterButton.disabled = Object.keys(state.constraints).length === 0;
-    candidates.forEach((candidate, index) => {
+    candidates.forEach((candidate) => {
       const row = document.createElement("label");
       row.className = "cf-filter-row";
       const enabled = document.createElement("input");
@@ -412,25 +428,84 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
 
       const value = document.createElement("input");
       value.type = "text";
-      value.value = state.constraints[candidate.variable] ?? candidate.values[0] ?? "";
+      value.value = filterInputValue(
+        state.constraints,
+        candidate.variable,
+        candidate.values[0] ?? "",
+      );
       value.disabled = !active;
-      value.placeholder = "giá trị";
+      value.placeholder =
+        candidate.values.length > 0
+          ? `chọn hoặc nhập (${candidate.values.length} gợi ý)`
+          : "giá trị";
       value.setAttribute("aria-label", `Giá trị của ${candidate.variable}`);
 
+      const valueControl = document.createElement("span");
+      valueControl.className = "cf-filter-value-control";
+      valueControl.append(value);
+
       if (candidate.values.length > 0) {
-        const listId = `cf-filter-values-${filterListGeneration}-${index}`;
-        value.setAttribute("list", listId);
-        const list = document.createElement("datalist");
-        list.id = listId;
+        // Native datalist lọc option theo text đang có. Combobox custom giữ nguyên text hiện tại
+        // nhưng mỗi lần mở vẫn hiển thị TOÀN BỘ giá trị mà analyzer tìm được.
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "cf-filter-suggestion-toggle";
+        toggle.disabled = !active;
+        toggle.textContent = "▾";
+        toggle.setAttribute("aria-label", `Mở gợi ý cho ${candidate.variable}`);
+        toggle.setAttribute("aria-expanded", "false");
+
+        const suggestions = document.createElement("span");
+        suggestions.className = "cf-filter-suggestions";
+        suggestions.setAttribute("role", "listbox");
+        suggestions.hidden = true;
         for (const candidateValue of candidate.values) {
-          const option = document.createElement("option");
-          option.value = candidateValue;
-          list.append(option);
+          const option = document.createElement("button");
+          option.type = "button";
+          option.className = "cf-filter-suggestion";
+          option.setAttribute("role", "option");
+          option.textContent = candidateValue;
+          option.addEventListener("click", () => {
+            value.value = candidateValue;
+            closeOpenSuggestions?.();
+            value.focus();
+          });
+          suggestions.append(option);
         }
-        row.append(enabled, variable, value, list);
-      } else {
-        row.append(enabled, variable, value);
+
+        const openSuggestions = (): void => {
+          if (value.disabled) return;
+          closeOpenSuggestions?.();
+          suggestions.hidden = false;
+          toggle.setAttribute("aria-expanded", "true");
+          openSuggestionControl = valueControl;
+          closeOpenSuggestions = () => {
+            suggestions.hidden = true;
+            toggle.setAttribute("aria-expanded", "false");
+            if (openSuggestionControl === valueControl) openSuggestionControl = undefined;
+            closeOpenSuggestions = undefined;
+          };
+        };
+        value.addEventListener("click", openSuggestions);
+        value.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown") {
+            openSuggestions();
+            event.preventDefault();
+          } else if (event.key === "Escape") {
+            closeOpenSuggestions?.();
+          }
+        });
+        toggle.addEventListener("click", () => {
+          if (suggestions.hidden) openSuggestions();
+          else closeOpenSuggestions?.();
+        });
+        valueControl.append(toggle, suggestions);
+        enabled.addEventListener("change", () => {
+          toggle.disabled = !enabled.checked;
+          if (!enabled.checked) closeOpenSuggestions?.();
+        });
       }
+      row.append(enabled, variable, valueControl);
 
       enabled.addEventListener("change", () => {
         value.disabled = !enabled.checked;
@@ -450,7 +525,10 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   applyFilterButton.addEventListener("click", () => {
     const constraints: Record<string, string> = {};
     for (const control of filterControls) {
-      if (control.enabled.checked) constraints[control.candidate.variable] = control.value.value;
+      const value = appliedConstraintValue(control.enabled.checked, control.value.value);
+      if (value !== undefined) {
+        constraints[control.candidate.variable] = value;
+      }
     }
     state = { ...state, constraints };
     persist();

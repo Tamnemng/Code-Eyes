@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { filterGraph } from "../../filter/filterGraph";
 import { toDisplayGraph } from "../model/display-graph";
-import { reconcileSameGraphState } from "../model/filter-state";
+import {
+  appliedConstraintValue,
+  filterInputValue,
+  reconcileSameGraphState,
+} from "../model/filter-state";
 import { initialState } from "../state";
 import { loadGolden } from "./helpers/golden";
 
@@ -43,5 +47,30 @@ describe("reconcileSameGraphState", () => {
     const next = reconcileSameGraphState(state, graph, false);
     expect(next.collapsedIds).toEqual(new Set([alive]));
     expect(next.selectedSourceId).toBeUndefined();
+  });
+});
+
+describe("filter value controls", () => {
+  it("hiện option đầu tiên mặc định và ưu tiên constraint đã apply", () => {
+    expect(
+      filterInputValue(
+        {},
+        "taskType",
+        "ETaskType.RECEIVE_BY_LPN",
+      ),
+    ).toBe("ETaskType.RECEIVE_BY_LPN");
+    expect(
+      filterInputValue(
+        { taskType: "ETaskType.RECEIVE_BY_UPC" },
+        "taskType",
+        "ETaskType.RECEIVE_BY_LPN",
+      ),
+    ).toBe("ETaskType.RECEIVE_BY_UPC");
+  });
+
+  it("không apply checkbox rỗng và trim giá trị đã nhập", () => {
+    expect(appliedConstraintValue(true, "   ")).toBeUndefined();
+    expect(appliedConstraintValue(false, "A")).toBeUndefined();
+    expect(appliedConstraintValue(true, "  A  ")).toBe("A");
   });
 });

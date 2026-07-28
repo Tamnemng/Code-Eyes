@@ -1,0 +1,239 @@
+{
+  "functionName": "routeTask",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: routeTask",
+      "code": "export function routeTask(data: { taskType: ETaskType }): string {",
+      "range": {
+        "startLine": 151,
+        "startCol": 0,
+        "endLine": 151,
+        "endCol": 66
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 162,
+        "startCol": 1,
+        "endLine": 162,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "switch (data.taskType)",
+      "code": "switch (data.taskType)",
+      "range": {
+        "startLine": 152,
+        "startCol": 2,
+        "endLine": 152,
+        "endCol": 24
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "data.taskType"
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "switch-case",
+      "label": "case ETaskType.RECEIVE_BY_LPN:",
+      "code": "case ETaskType.RECEIVE_BY_LPN:",
+      "range": {
+        "startLine": 153,
+        "startCol": 4,
+        "endLine": 153,
+        "endCol": 34
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case ETaskType.RECEIVE_BY_LPN",
+        "parsed": {
+          "variable": "data.taskType",
+          "operator": "==",
+          "value": "ETaskType.RECEIVE_BY_LPN"
+        }
+      }
+    },
+    {
+      "id": "n_5",
+      "kind": "return",
+      "label": "return \"lpn\";",
+      "code": "return \"lpn\";",
+      "range": {
+        "startLine": 154,
+        "startCol": 6,
+        "endLine": 154,
+        "endCol": 19
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_6",
+      "kind": "switch-case",
+      "label": "case ETaskType.RECEIVE_BY_UPC:",
+      "code": "case ETaskType.RECEIVE_BY_UPC:",
+      "range": {
+        "startLine": 155,
+        "startCol": 4,
+        "endLine": 155,
+        "endCol": 34
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case ETaskType.RECEIVE_BY_UPC",
+        "parsed": {
+          "variable": "data.taskType",
+          "operator": "==",
+          "value": "ETaskType.RECEIVE_BY_UPC"
+        }
+      }
+    },
+    {
+      "id": "n_7",
+      "kind": "return",
+      "label": "return \"upc\";",
+      "code": "return \"upc\";",
+      "range": {
+        "startLine": 156,
+        "startCol": 6,
+        "endLine": 156,
+        "endCol": 19
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_8",
+      "kind": "switch-case",
+      "label": "case ETaskType.UPDATE_RECEIPT_BY_UPC:",
+      "code": "case ETaskType.UPDATE_RECEIPT_BY_UPC:",
+      "range": {
+        "startLine": 157,
+        "startCol": 4,
+        "endLine": 157,
+        "endCol": 41
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "case ETaskType.UPDATE_RECEIPT_BY_UPC",
+        "parsed": {
+          "variable": "data.taskType",
+          "operator": "==",
+          "value": "ETaskType.UPDATE_RECEIPT_BY_UPC"
+        }
+      }
+    },
+    {
+      "id": "n_9",
+      "kind": "return",
+      "label": "return \"update\";",
+      "code": "return \"update\";",
+      "range": {
+        "startLine": 158,
+        "startCol": 6,
+        "endLine": 158,
+        "endCol": 22
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_10",
+      "kind": "switch-case",
+      "label": "default:",
+      "code": "default:",
+      "range": {
+        "startLine": 159,
+        "startCol": 4,
+        "endLine": 159,
+        "endCol": 12
+      },
+      "confidence": "certain",
+      "condition": {
+        "raw": "default"
+      }
+    },
+    {
+      "id": "n_11",
+      "kind": "return",
+      "label": "return \"other\";",
+      "code": "return \"other\";",
+      "range": {
+        "startLine": 160,
+        "startCol": 6,
+        "endLine": 160,
+        "endCol": 21
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "case"
+    },
+    {
+      "from": "n_4",
+      "to": "n_5"
+    },
+    {
+      "from": "n_5",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_6",
+      "label": "case"
+    },
+    {
+      "from": "n_6",
+      "to": "n_7"
+    },
+    {
+      "from": "n_7",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_8",
+      "label": "case"
+    },
+    {
+      "from": "n_8",
+      "to": "n_9"
+    },
+    {
+      "from": "n_9",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_10",
+      "label": "default"
+    },
+    {
+      "from": "n_10",
+      "to": "n_11"
+    },
+    {
+      "from": "n_11",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

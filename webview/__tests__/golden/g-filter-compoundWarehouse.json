@@ -1,0 +1,117 @@
+{
+  "functionName": "compoundWarehouse",
+  "filePath": "webview/__tests__/fixtures/g-filter.ts",
+  "language": "typescript",
+  "nodes": [
+    {
+      "id": "n_1",
+      "kind": "entry",
+      "label": "entry: compoundWarehouse",
+      "code": "export function compoundWarehouse(",
+      "range": {
+        "startLine": 127,
+        "startCol": 0,
+        "endLine": 127,
+        "endCol": 34
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_2",
+      "kind": "exit",
+      "label": "exit",
+      "code": "",
+      "range": {
+        "startLine": 136,
+        "startCol": 1,
+        "endLine": 136,
+        "endCol": 1
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_3",
+      "kind": "condition",
+      "label": "currentUser.clientCode === \"SAINTGOBAIN\" && whseid === \"510…",
+      "code": "currentUser.clientCode === \"SAINTGOBAIN\" && whseid === \"510\" && ready",
+      "range": {
+        "startLine": 132,
+        "startCol": 6,
+        "endLine": 132,
+        "endCol": 75
+      },
+      "confidence": "unknown",
+      "condition": {
+        "raw": "currentUser.clientCode === \"SAINTGOBAIN\" && whseid === \"510\" && ready",
+        "parsed": {
+          "variable": "currentUser.clientCode",
+          "operator": "==",
+          "value": "SAINTGOBAIN"
+        },
+        "parsedConjuncts": [
+          {
+            "variable": "currentUser.clientCode",
+            "operator": "==",
+            "value": "SAINTGOBAIN"
+          },
+          {
+            "variable": "whseid",
+            "operator": "==",
+            "value": "510"
+          }
+        ]
+      }
+    },
+    {
+      "id": "n_4",
+      "kind": "return",
+      "label": "return \"matched\";",
+      "code": "return \"matched\";",
+      "range": {
+        "startLine": 133,
+        "startCol": 4,
+        "endLine": 133,
+        "endCol": 21
+      },
+      "confidence": "certain"
+    },
+    {
+      "id": "n_5",
+      "kind": "return",
+      "label": "return \"fallback\";",
+      "code": "return \"fallback\";",
+      "range": {
+        "startLine": 135,
+        "startCol": 2,
+        "endLine": 135,
+        "endCol": 20
+      },
+      "confidence": "certain"
+    }
+  ],
+  "edges": [
+    {
+      "from": "n_1",
+      "to": "n_3"
+    },
+    {
+      "from": "n_3",
+      "to": "n_4",
+      "label": "true"
+    },
+    {
+      "from": "n_4",
+      "to": "n_2"
+    },
+    {
+      "from": "n_3",
+      "to": "n_5",
+      "label": "false"
+    },
+    {
+      "from": "n_5",
+      "to": "n_2"
+    }
+  ],
+  "warnings": []
+}

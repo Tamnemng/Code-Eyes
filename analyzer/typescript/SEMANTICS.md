@@ -141,7 +141,9 @@ trong catalog, không sửa analyzer.
   - edge từ discriminant tới case: label `case`; tới `default`: label `default`.
   - Node `switch-case` MANG `condition` (mở rộng hợp lệ, field optional):
     `raw` = `case "A"`, `parsed` = `{ variable: <discriminant>, operator: "==", value: "A" }`
-    khi case là string literal; `default` → `raw = "default"`, `parsed = undefined`.
+    khi case là string/number literal hoặc identifier/property access tĩnh (ví dụ
+    `case ETaskType.RECEIVE_BY_LPN` giữ value đúng bằng source text đó);
+    `default` → `raw = "default"`, `parsed = undefined`.
 - **Không có clause `default`**: discriminant vẫn phải có một edge nhãn `default` đi thẳng
   tới node sau switch (trường hợp không case nào khớp). Thiếu edge này là bỏ sót nhánh.
 - **Fallthrough**: case không có `break` → edge `null` từ node cuối của case đó sang node
@@ -289,41 +291,33 @@ nhưng `confidence` của node `condition` luôn do §12 quyết định.
 | `["A","B"].includes(x)` | `{ variable: "x", operator: "in", value: ["A","B"] }` |
 | `case "A":` | `{ variable: <discriminant>, operator: "==", value: "A" }` |
 
-`variable` là source text của vế biến (cho phép property access: `req.clientCode`).
-Nếu vế biến chứa `?.` thì coi như không parse được.
+`variable` là đường dẫn property đã chuẩn hoá của vế biến (ví dụ `req.clientCode`).
+Optional property access dùng chung key với property access thường:
+`currentUser?.clientCode` → `currentUser.clientCode`.
 
 ### Bảng quyết định
 
 | Biểu thức điều kiện | parsed | confidence |
 | --- | --- | --- |
 | Khớp đúng một dạng ở trên, không còn gì khác (`x === "A"`) | có | `certain` |
-| Chuỗi `&&` có ít nhất một hạng tử parse được (`x === "A" && f(y)`) | có, lấy **hạng tử parse được ĐẦU TIÊN** từ trái sang | `unknown` |
+| Chuỗi `&&` có ít nhất một hạng tử parse được (`x === "A" && f(y)`) | `parsed` giữ hạng tử đầu để tương thích; `parsedConjuncts` giữ mọi hạng tử parse được khi có nhiều hơn một | `unknown` |
 | Chuỗi `\|\|` (`x === "A" \|\| y`) | `undefined` | `unknown` |
 | Không parse được (`count > 10`, `flag === true`, `tags.length === count`, `f(x)`, `!flag`) | `undefined` | `unknown` |
 
-### Hạn chế đã biết của quy tắc "hạng tử đầu tiên từ trái"
+### Chuỗi `&&` nhiều biến
 
-Schema chỉ chứa được MỘT `parsed`, nên chuỗi `&&` nhiều hạng tử parse được chỉ giữ lại
-hạng tử đầu tiên (`x === "A" && x.startsWith("A")` → chỉ giữ `x === "A"`).
-
-Điểm mù cụ thể: `if (mode === "fast" && clientCode === "A")` sẽ điền `parsed` theo `mode`.
-Khi filter chạy với ràng buộc `clientCode = "B"`, nhánh này **đáng lẽ prune được**
-(`clientCode === "A"` chắc chắn false → cả biểu thức false) nhưng filter không thấy, vì ô
-`parsed` duy nhất đang bị `mode` chiếm. Kết quả: bỏ lỡ cơ hội prune - **an toàn** (giữ thừa,
-không cắt nhầm), nhưng làm giảm tỉ lệ prune.
-
-Giai đoạn 1 giữ nguyên, không sửa. **Nếu Giai đoạn 3 chạy trên codebase thật mà tỉ lệ prune
-thấp hơn kỳ vọng, đây là chỗ đầu tiên cần quay lại**: mở rộng `parsed` thành mảng conjunct
-(`parsed: ParsedCondition[]`, ngữ nghĩa "tất cả phải đúng"), khi đó filter prune được nhánh
-`true` nếu BẤT KỲ conjunct nào cho false. Đổi schema thì cả ba tầng phải đổi theo, nên chỉ
-làm khi có số liệu chứng minh.
+`parsedConjuncts` giải quyết điểm mù của schema một `parsed`: với
+`mode === "fast" && clientCode === "A"`, cả `mode` lẫn `clientCode` đều xuất hiện trong
+phễu. Nếu BẤT KỲ conjunct có constraint và cho `false`, toàn bộ biểu thức chắc chắn false
+nên filter được phép prune nhánh `true`. Conjunct cho `true` vẫn không đủ chứng minh toàn bộ
+biểu thức true vì có thể còn hạng tử không parse được.
 
 ### Hợp đồng với Giai đoạn 3 (filter) - BẤT ĐỐI XỨNG, phải tôn trọng
 
 | Node | Filter được phép làm gì |
 | --- | --- |
 | `confidence: "certain"` + có `parsed` | Kết luận hai chiều. parsed cho `false` → prune nhánh `true`; parsed cho `true` → prune nhánh `false`. |
-| `confidence: "unknown"` + có `parsed` | **Chỉ một chiều**: parsed cho `false` → toàn bộ biểu thức chắc chắn `false` → prune nhánh `true`. parsed cho `true` → **KHÔNG prune gì** (các hạng tử `&&` còn lại vẫn có thể sai). |
+| `confidence: "unknown"` + có `parsed` / `parsedConjuncts` | **Chỉ một chiều**: bất kỳ parsed conjunct cho `false` → toàn bộ biểu thức chắc chắn `false` → prune nhánh `true`. Các conjunct đã biết đều cho `true` → **KHÔNG prune gì** (hạng tử còn lại vẫn có thể sai). |
 | `confidence: "unknown"` + không `parsed` | Không prune. Giữ cả hai nhánh. |
 
 Tại sao `\|\|` không được điền `parsed`: với `\|\|`, kết luận chắc chắn chạy theo chiều

@@ -74,20 +74,30 @@ function markConditionEdges(
   deadEdges: Set<number>,
 ): boolean {
   if (node.kind !== "condition") return false;
-  const parsed = node.condition?.parsed;
-  if (parsed === undefined) return false;
-  const actual = constraints[parsed.variable];
-  if (actual === undefined) return false;
-
-  const result = evaluate(parsed, actual);
-  if (result === undefined) return true;
+  const primary = node.condition?.parsed;
+  const parsedItems =
+    node.condition?.parsedConjuncts ?? (primary === undefined ? [] : [primary]);
+  let matched = false;
+  let hasFalse = false;
+  let singleResult: boolean | undefined;
+  for (const parsed of parsedItems) {
+    const actual = constraints[parsed.variable];
+    if (actual === undefined) continue;
+    matched = true;
+    const result = evaluate(parsed, actual);
+    if (parsedItems.length === 1) singleResult = result;
+    if (result === false) hasFalse = true;
+  }
+  if (!matched) return false;
 
   // §12 bất đối xứng:
   // - certain: kết luận được cả true lẫn false;
   // - unknown: chỉ parsed=false mới chứng minh cả biểu thức false.
-  if (!result) {
+  // For `&&`, any known-false parsed conjunct proves the whole expression false.
+  // Known-true conjuncts do not prove the whole expression true.
+  if (hasFalse) {
     for (const [index, edge] of edges) if (edge.label === "true") deadEdges.add(index);
-  } else if (node.confidence === "certain") {
+  } else if (node.confidence === "certain" && singleResult === true) {
     for (const [index, edge] of edges) if (edge.label === "false") deadEdges.add(index);
   }
   return true;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FlowGraph } from "../../shared/types";
 import { collectCallSites } from "../call-sites";
+import { selectAutoInlineCallSite } from "../inline-graph";
 
 const source = `class Controller {
   receiveByExternReceipt(body: ReceiveByExternReceiptDto) {
@@ -88,5 +89,34 @@ describe("collectCallSites", () => {
     };
 
     expect(collectCallSites("pick.ts", builtinSource, builtinGraph)).toEqual([]);
+  });
+
+  it("wrapper callback prefers received over withDeadlockRetry", () => {
+    const wrapperSource = `class Controller {
+  receive(body: ReceivesDto) {
+    return withDeadlockRetry(() => this.receiveService.received(body));
+  }
+}`;
+    const wrapperGraph: FlowGraph = {
+      functionName: "Controller.receive",
+      filePath: "controller.ts",
+      language: "typescript",
+      warnings: [],
+      nodes: [
+        {
+          id: "n_return",
+          kind: "return",
+          label: "return withDeadlockRetry(() => this.receiveService.received(body))",
+          code: "return withDeadlockRetry(() => this.receiveService.received(body));",
+          range: { startLine: 3, startCol: 4, endLine: 3, endCol: 70 },
+          confidence: "certain",
+        },
+      ],
+      edges: [],
+    };
+
+    const sites = collectCallSites("controller.ts", wrapperSource, wrapperGraph);
+    expect(sites.map((site) => site.label)).toEqual(["withDeadlockRetry", "received"]);
+    expect(selectAutoInlineCallSite(wrapperGraph, sites)[0]?.label).toBe("received");
   });
 });

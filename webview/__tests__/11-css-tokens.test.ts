@@ -133,6 +133,12 @@ describe("styles.css - các class mà svg.ts và detail.ts dựa vào", () => {
     expect(css).toContain("--cf-text-node:");
   });
 
+  it("dropdown ở cuối popup xổ lên để không bắt người dùng cuộn popup xuống", () => {
+    expect(css).toMatch(
+      /\.cf-filter-row:nth-last-child\(-n\+2\)\s+\.cf-filter-suggestions\s*\{[^}]*top:\s*auto;[^}]*bottom:/,
+    );
+  });
+
   it("KHÔNG transition trên phần tử graph - đó là nguồn lag khi pan graph lớn", () => {
     for (const selector of [".cf-edge", ".cf-node .cf-shape"] as const) {
       const block = new RegExp(`\\${selector.replace(/ /g, "\\s+")}\\s*\\{([^}]*)\\}`).exec(css);

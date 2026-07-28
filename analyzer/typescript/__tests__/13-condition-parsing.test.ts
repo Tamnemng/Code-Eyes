@@ -135,7 +135,7 @@ describe("&& / || trong biểu thức điều kiện", () => {
     expect(cond.confidence).toBe("unknown");
   });
 
-  it("chuỗi &&: lấy hạng tử parse được ĐẦU TIÊN từ trái sang", () => {
+  it("chuỗi &&: parsed tương thích giữ hạng tử đầu tiên từ trái sang", () => {
     const g = analyzeFixture(FILE, "chainOrder");
 
     expectGraph(g, {
@@ -154,13 +154,56 @@ describe("&& / || trong biểu thức điều kiện", () => {
     });
     expect(first.confidence).toBe("unknown");
 
-    // cả hai hạng tử đều parse được -> lấy cái ĐẦU TIÊN (schema chỉ chứa một parsed)
+    // `parsed` tương thích vẫn giữ cái đầu tiên; `parsedConjuncts` chứa toàn bộ.
     const second = node(g, 'condition:clientCode === "B"');
     expect(second.condition?.parsed).toEqual({
       variable: "clientCode",
       operator: "==",
       value: "B",
     });
+    expect(second.condition?.parsedConjuncts).toEqual([
+      { variable: "clientCode", operator: "==", value: "B" },
+      { variable: "clientCode", operator: "startsWith", value: "B" },
+    ]);
     expect(second.confidence).toBe("unknown");
+  });
+
+  it("&& keeps every parsable comparison so each variable can filter safely", () => {
+    const g = analyzeFixture(FILE, "compoundWarehouse");
+    const cond = node(g, "condition");
+
+    expect(cond.condition?.parsedConjuncts).toEqual([
+      {
+        variable: "currentUser.clientCode",
+        operator: "==",
+        value: "SAINTGOBAIN",
+      },
+      { variable: "whseid", operator: "==", value: "510" },
+    ]);
+    expect(cond.confidence).toBe("unknown");
+  });
+
+  it("normalizes optional property access to the same filter variable", () => {
+    const g = analyzeFixture(FILE, "optionalClient");
+    const cond = node(g, "condition");
+
+    expect(cond.condition?.parsed).toEqual({
+      variable: "currentUser.clientCode",
+      operator: "==",
+      value: "TTC",
+    });
+    expect(cond.confidence).toBe("certain");
+  });
+
+  it("parses enum cases for a switch over a DTO property", () => {
+    const g = analyzeFixture(FILE, "routeTask");
+    const caseLpn = node(g, "switch-case:case ETaskType.RECEIVE_BY_LPN");
+
+    expect(caseLpn.condition?.parsed).toEqual({
+      variable: "data.taskType",
+      operator: "==",
+      value: "ETaskType.RECEIVE_BY_LPN",
+    });
+    expect(caseLpn.confidence).toBe("certain");
   });
 });

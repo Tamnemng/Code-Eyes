@@ -8,6 +8,11 @@ import type { HostToWebview } from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
 import { collectCallSites, type CallSite } from "./call-sites";
 import {
+  AUTO_INLINE_GRAPH_LIMIT,
+  inlineCalleeGraph,
+  selectAutoInlineCallSite,
+} from "./inline-graph";
+import {
   classifyAnalyzeError,
   findNodeRange,
   parseWebviewMessage,
@@ -21,12 +26,23 @@ const CODEFLOW_CONTAINER_COMMAND = "workbench.view.extension.codeflow";
 const READY_TIMEOUT_MS = 3_000;
 const HIGHLIGHT_MS = 1_500;
 
-interface GraphFrame {
-  graph: FlowGraph;
+interface SourceRef {
   uri: vscode.Uri;
   version: number;
-  callSites: CallSite[];
 }
+
+interface FrameCallSite extends CallSite, SourceRef {}
+
+interface GraphFrame {
+  graph: FlowGraph;
+  callSites: FrameCallSite[];
+  sources: ReadonlyMap<string, SourceRef>;
+}
+
+type ResolveCalleeResult =
+  | { kind: "ok"; frame: GraphFrame }
+  | { kind: "changed" }
+  | { kind: "missing" };
 
 function isLocationLink(
   definition: vscode.Location | vscode.LocationLink,
@@ -148,7 +164,8 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
         column: position.column,
         sourceText,
       });
-      this.frames = [this.makeFrame(document, sourceText, graph)];
+      const frame = this.makeFrame(document, sourceText, graph);
+      this.frames = [await this.autoInlineWrapper(frame)];
       this.updateGraphMessage();
     } catch (error: unknown) {
       const classified = classifyAnalyzeError(error);
@@ -173,12 +190,107 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   private makeFrame(document: vscode.TextDocument, sourceText: string, graph: FlowGraph): GraphFrame {
+    const source = { uri: document.uri, version: document.version };
     return {
       graph,
-      uri: document.uri,
-      version: document.version,
-      callSites: collectCallSites(document.uri.fsPath, sourceText, graph),
+      callSites: collectCallSites(document.uri.fsPath, sourceText, graph).map((site) => ({
+        ...site,
+        ...source,
+      })),
+      sources: new Map(graph.nodes.map((node) => [node.id, source])),
     };
+  }
+
+  private async resolveCallee(callSite: FrameCallSite): Promise<ResolveCalleeResult> {
+    const sourceDocument = await vscode.workspace.openTextDocument(callSite.uri);
+    if (sourceDocument.version !== callSite.version) return { kind: "changed" };
+
+    const definitions = await vscode.commands.executeCommand<
+      readonly (vscode.Location | vscode.LocationLink)[] | undefined
+    >(
+      "vscode.executeDefinitionProvider",
+      callSite.uri,
+      new vscode.Position(callSite.line - 1, callSite.column),
+    );
+    const definition = definitions?.find((item) => {
+      const uri = isLocationLink(item) ? item.targetUri : item.uri;
+      const extension = path.extname(uri.path).toLowerCase();
+      return (extension === ".ts" || extension === ".tsx") && !uri.path.endsWith(".d.ts");
+    });
+    if (definition === undefined) return { kind: "missing" };
+
+    const targetUri = isLocationLink(definition) ? definition.targetUri : definition.uri;
+    const targetPosition = isLocationLink(definition)
+      ? (definition.targetSelectionRange ?? definition.targetRange).start
+      : definition.range.start;
+    const targetDocument = await vscode.workspace.openTextDocument(targetUri);
+    const sourceText = targetDocument.getText();
+    const analyzerPosition = toAnalyzerPosition(targetPosition);
+    const graph = analyzeFunctionAtCursor({
+      filePath: targetDocument.uri.fsPath,
+      line: analyzerPosition.line,
+      column: analyzerPosition.column,
+      sourceText,
+    });
+    return { kind: "ok", frame: this.makeFrame(targetDocument, sourceText, graph) };
+  }
+
+  /**
+   * Chỉ auto-inline một tầng cho wrapper nhỏ. Với nhiều call trong cùng return, thử từ call
+   * nằm sâu nhất trong source ra ngoài; ví dụ `received` được thử trước `withDeadlockRetry`.
+   */
+  private async autoInlineWrapper(frame: GraphFrame): Promise<GraphFrame> {
+    const candidates = selectAutoInlineCallSite(frame.graph, frame.callSites);
+    for (const callSite of candidates) {
+      let resolved: ResolveCalleeResult;
+      try {
+        resolved = await this.resolveCallee(callSite);
+      } catch {
+        continue;
+      }
+      if (resolved.kind !== "ok") continue;
+      if (
+        frame.graph.nodes.length + resolved.frame.graph.nodes.length >
+        AUTO_INLINE_GRAPH_LIMIT
+      ) {
+        continue;
+      }
+
+      const merged = inlineCalleeGraph(
+        frame.graph,
+        callSite.nodeId,
+        resolved.frame.graph,
+        callSite.targetId,
+      );
+      if (merged === undefined) continue;
+
+      const sources = new Map(frame.sources);
+      for (const [calleeNodeId, mergedNodeId] of merged.nodeIdMap) {
+        const source = resolved.frame.sources.get(calleeNodeId);
+        if (source !== undefined) sources.set(mergedNodeId, source);
+      }
+
+      const nestedCallSites: FrameCallSite[] = [];
+      for (const nested of resolved.frame.callSites) {
+        const nodeId = merged.nodeIdMap.get(nested.nodeId);
+        if (nodeId === undefined) continue;
+        nestedCallSites.push({
+          ...nested,
+          targetId: `inline:${callSite.targetId}:${nested.targetId}`,
+          nodeId,
+        });
+      }
+
+      return {
+        graph: merged.graph,
+        sources,
+        callSites: [
+          ...frame.callSites.filter((site) => site.targetId !== callSite.targetId),
+          ...nestedCallSites,
+        ],
+      };
+    }
+    return frame;
   }
 
   private currentFrame(): GraphFrame | undefined {
@@ -221,27 +333,14 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
     }
 
     try {
-      const sourceDocument = await vscode.workspace.openTextDocument(frame.uri);
-      if (sourceDocument.version !== frame.version) {
+      const resolved = await this.resolveCallee(callSite);
+      if (resolved.kind === "changed") {
         await vscode.window.showInformationMessage(
           "CodeFlow: file gọi hàm đã thay đổi; hãy chạy Visualize Control Flow lại.",
         );
         return;
       }
-
-      const definitions = await vscode.commands.executeCommand<
-        readonly (vscode.Location | vscode.LocationLink)[] | undefined
-      >(
-        "vscode.executeDefinitionProvider",
-        frame.uri,
-        new vscode.Position(callSite.line - 1, callSite.column),
-      );
-      const definition = definitions?.find((item) => {
-        const uri = isLocationLink(item) ? item.targetUri : item.uri;
-        const extension = path.extname(uri.path).toLowerCase();
-        return (extension === ".ts" || extension === ".tsx") && !uri.path.endsWith(".d.ts");
-      });
-      if (definition === undefined) {
+      if (resolved.kind === "missing") {
         await vscode.window.showInformationMessage(
           `CodeFlow: không có source TypeScript để mở cho ${callSite.label} ` +
             "(có thể là hàm built-in như Array.filter).",
@@ -249,20 +348,7 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
         return;
       }
 
-      const targetUri = isLocationLink(definition) ? definition.targetUri : definition.uri;
-      const targetPosition = isLocationLink(definition)
-        ? (definition.targetSelectionRange ?? definition.targetRange).start
-        : definition.range.start;
-      const targetDocument = await vscode.workspace.openTextDocument(targetUri);
-      const sourceText = targetDocument.getText();
-      const analyzerPosition = toAnalyzerPosition(targetPosition);
-      const graph = analyzeFunctionAtCursor({
-        filePath: targetDocument.uri.fsPath,
-        line: analyzerPosition.line,
-        column: analyzerPosition.column,
-        sourceText,
-      });
-      this.frames.push(this.makeFrame(targetDocument, sourceText, graph));
+      this.frames.push(await this.autoInlineWrapper(resolved.frame));
       this.updateGraphMessage();
       this.postLatestIfReady();
     } catch (error: unknown) {
@@ -283,7 +369,8 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
     }
 
     const sourceRange = findNodeRange(analyzed.graph, nodeId);
-    if (sourceRange === undefined) {
+    const source = analyzed.sources.get(nodeId);
+    if (sourceRange === undefined || source === undefined) {
       await vscode.window.showInformationMessage(
         "CodeFlow: node không còn tồn tại trong graph hiện tại.",
       );
@@ -291,8 +378,8 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
     }
 
     try {
-      const document = await vscode.workspace.openTextDocument(analyzed.uri);
-      if (document.version !== analyzed.version) {
+      const document = await vscode.workspace.openTextDocument(source.uri);
+      if (document.version !== source.version) {
         await vscode.window.showInformationMessage(
           "CodeFlow: file đã thay đổi; hãy chạy Visualize Control Flow lại trước khi jump.",
         );

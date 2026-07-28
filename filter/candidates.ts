@@ -17,16 +17,28 @@ export function collectFilterCandidates(graph: FlowGraph): FilterCandidate[] {
   >();
 
   for (const node of graph.nodes) {
-    const parsed = node.condition?.parsed;
-    if (parsed === undefined) continue;
-    let candidate = found.get(parsed.variable);
-    if (candidate === undefined) {
-      candidate = { values: new Set(), certainNodes: 0, unknownNodes: 0 };
-      found.set(parsed.variable, candidate);
+    const primary = node.condition?.parsed;
+    const parsedItems =
+      node.condition?.parsedConjuncts ?? (primary === undefined ? [] : [primary]);
+    const valuesByVariable = new Map<string, Set<string>>();
+    for (const parsed of parsedItems) {
+      let values = valuesByVariable.get(parsed.variable);
+      if (values === undefined) {
+        values = new Set();
+        valuesByVariable.set(parsed.variable, values);
+      }
+      const parsedValues = Array.isArray(parsed.value) ? parsed.value : [parsed.value];
+      for (const value of parsedValues) values.add(value);
     }
-    candidate[node.confidence === "certain" ? "certainNodes" : "unknownNodes"] += 1;
-    const values = Array.isArray(parsed.value) ? parsed.value : [parsed.value];
-    for (const value of values) candidate.values.add(value);
+    for (const [variable, values] of valuesByVariable) {
+      let candidate = found.get(variable);
+      if (candidate === undefined) {
+        candidate = { values: new Set(), certainNodes: 0, unknownNodes: 0 };
+        found.set(variable, candidate);
+      }
+      candidate[node.confidence === "certain" ? "certainNodes" : "unknownNodes"] += 1;
+      for (const value of values) candidate.values.add(value);
+    }
   }
 
   return [...found]

@@ -6,6 +6,21 @@ import { pruneCollapsedIds } from "./collapse";
 import type { DisplayGraph } from "./display-graph";
 import type { ViewState } from "../state";
 
+/** Khôi phục constraint đã apply; nếu chưa có thì hiện sẵn gợi ý đầu tiên. */
+export function filterInputValue(
+  constraints: ViewState["constraints"],
+  variable: string,
+  defaultValue = "",
+): string {
+  return constraints[variable] ?? defaultValue;
+}
+
+/** Checkbox rỗng không tạo constraint `""` khiến switch rơi nhầm vào default. */
+export function appliedConstraintValue(enabled: boolean, value: string): string | undefined {
+  const normalized = value.trim();
+  return enabled && normalized !== "" ? normalized : undefined;
+}
+
 export function reconcileSameGraphState(
   state: ViewState,
   graph: DisplayGraph,

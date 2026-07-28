@@ -123,3 +123,40 @@ export function operators(
   if (group === "last") return "last";
   return "other";
 }
+
+export function compoundWarehouse(
+  currentUser: { clientCode: string },
+  whseid: string,
+  ready: boolean,
+): string {
+  if (currentUser.clientCode === "SAINTGOBAIN" && whseid === "510" && ready) {
+    return "matched";
+  }
+  return "fallback";
+}
+
+export function optionalClient(
+  currentUser: { clientCode: string } | undefined,
+): string {
+  if (currentUser?.clientCode === "TTC") return "ttc";
+  return "other";
+}
+
+enum ETaskType {
+  RECEIVE_BY_LPN,
+  RECEIVE_BY_UPC,
+  UPDATE_RECEIPT_BY_UPC,
+}
+
+export function routeTask(data: { taskType: ETaskType }): string {
+  switch (data.taskType) {
+    case ETaskType.RECEIVE_BY_LPN:
+      return "lpn";
+    case ETaskType.RECEIVE_BY_UPC:
+      return "upc";
+    case ETaskType.UPDATE_RECEIPT_BY_UPC:
+      return "update";
+    default:
+      return "other";
+  }
+}

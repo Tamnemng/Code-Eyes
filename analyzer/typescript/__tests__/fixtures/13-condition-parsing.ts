@@ -66,3 +66,37 @@ export function chainOrder(clientCode: string, tags: string[]): string {
   }
   return "none";
 }
+
+enum ETaskType {
+  RECEIVE_BY_LPN,
+  RECEIVE_BY_UPC,
+}
+
+export function compoundWarehouse(
+  currentUser: { clientCode: string },
+  whseid: string,
+  ready: boolean,
+): string {
+  if (currentUser.clientCode === "SAINTGOBAIN" && whseid === "510" && ready) {
+    return "matched";
+  }
+  return "fallback";
+}
+
+export function optionalClient(
+  currentUser: { clientCode: string } | undefined,
+): string {
+  if (currentUser?.clientCode === "TTC") return "ttc";
+  return "other";
+}
+
+export function routeTask(data: { taskType: ETaskType }): string {
+  switch (data.taskType) {
+    case ETaskType.RECEIVE_BY_LPN:
+      return "lpn";
+    case ETaskType.RECEIVE_BY_UPC:
+      return "upc";
+    default:
+      return "other";
+  }
+}

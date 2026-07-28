@@ -776,7 +776,9 @@ body {
 }
 
 .cf-filter-row input[type="text"] {
+  width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   color: var(--cf-fg);
   font-family: var(--cf-font-mono);
   font-size: var(--cf-text-sm);
@@ -788,6 +790,85 @@ body {
 
 .cf-filter-row input[type="text"]:disabled {
   opacity: 0.5;
+}
+
+.cf-filter-value-control {
+  position: relative;
+  min-width: 0;
+  display: block;
+}
+
+.cf-filter-value-control input[type="text"] {
+  padding-right: 30px;
+}
+
+.cf-toolbar .cf-filter-suggestion-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 27px;
+  padding: 0;
+  color: var(--cf-fg);
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--cf-line-strong);
+  border-radius: 0 2px 2px 0;
+  cursor: pointer;
+}
+
+.cf-toolbar .cf-filter-suggestion-toggle:hover {
+  background: var(--cf-control-hover-bg);
+}
+
+.cf-toolbar .cf-filter-suggestion-toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.cf-filter-suggestions {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 3px);
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 3px;
+  background: var(--cf-chrome-bg);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 3px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--cf-bg) 60%, transparent);
+}
+
+.cf-filter-suggestions[hidden] {
+  display: none;
+}
+
+/* Hàng sát đáy xổ ngược lên để dropdown không nới scrollHeight của popup Filter. */
+.cf-filter-row:nth-last-child(-n+2) .cf-filter-suggestions {
+  top: auto;
+  bottom: calc(100% + 3px);
+}
+
+.cf-toolbar .cf-filter-suggestion {
+  width: 100%;
+  padding: 5px 7px;
+  overflow: hidden;
+  color: var(--cf-fg);
+  font-family: var(--cf-font-mono);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+}
+
+.cf-toolbar .cf-filter-suggestion:hover,
+.cf-toolbar .cf-filter-suggestion:focus-visible {
+  color: var(--vscode-list-activeSelectionForeground, var(--cf-fg-strong));
+  background: var(--vscode-list-hoverBackground, var(--cf-control-hover-bg));
 }
 
 .cf-filter-actions {

@@ -69,14 +69,23 @@ function bruteForcePathUnion(graph: FlowGraph, constraints: Constraints): Set<st
   const possibleEdges = (current: FlowNode): readonly FlowEdge[] => {
     const edges = outgoing.get(current.id) ?? [];
     const truthEdges = edges.filter((edge) => edge.label === "true" || edge.label === "false");
-    const parsed = current.condition?.parsed;
-    if (truthEdges.length > 0 && parsed !== undefined) {
-      const actual = constraints[parsed.variable];
-      if (actual !== undefined) {
-        const result = evaluate(parsed, actual);
-        if (current.confidence === "certain" || !result) {
-          return edges.filter((edge) => edge.label === (result ? "true" : "false"));
-        }
+    const primary = current.condition?.parsed;
+    const parsedItems =
+      current.condition?.parsedConjuncts ?? (primary === undefined ? [] : [primary]);
+    if (truthEdges.length > 0 && parsedItems.length > 0) {
+      const knownResults = parsedItems.flatMap((parsed) => {
+        const actual = constraints[parsed.variable];
+        return actual === undefined ? [] : [evaluate(parsed, actual)];
+      });
+      if (knownResults.includes(false)) {
+        return edges.filter((edge) => edge.label === "false");
+      }
+      if (
+        current.confidence === "certain" &&
+        parsedItems.length === 1 &&
+        knownResults[0] === true
+      ) {
+        return edges.filter((edge) => edge.label === "true");
       }
     }
 
@@ -173,6 +182,25 @@ describe("filterGraph — hợp đồng bất đối xứng §12", () => {
     expect(labels(filterGraph(input, { tier: "bronze" })).has('return "member";')).toBe(false);
     expect(labels(filterGraph(input, { group: "last" })).has('return "last";')).toBe(true);
     expect(labels(filterGraph(input, { group: "other" })).has('return "last";')).toBe(false);
+  });
+
+  it("a false && term prunes true, while one true term leaves both branches", () => {
+    const input = golden("compoundWarehouse");
+
+    const falseResult = filterGraph(input, { whseid: "204" });
+    expect(labels(falseResult).has('return "matched";')).toBe(false);
+
+    const unresolvedResult = filterGraph(input, { whseid: "510" });
+    expect(unresolvedResult.nodes).toEqual(input.nodes);
+    expect(unresolvedResult.edges).toEqual(input.edges);
+  });
+
+  it("filters optional property access in both directions", () => {
+    const input = golden("optionalClient");
+    expect(labels(filterGraph(input, { "currentUser.clientCode": "TTC" })).has('return "ttc";'))
+      .toBe(true);
+    expect(labels(filterGraph(input, { "currentUser.clientCode": "OTHER" })).has('return "ttc";'))
+      .toBe(false);
   });
 });
 
@@ -312,6 +340,9 @@ describe("filterGraph — bất biến và oracle brute-force", () => {
     "g-filter-terminalLoop",
     "g-filter-withDeadCode",
     "g-filter-operators",
+    "g-filter-compoundWarehouse",
+    "g-filter-optionalClient",
+    "g-filter-routeTask",
   ] as const;
 
   it.each(allGoldenNames)("%s: output là graph con, giữ entry/exit và node còn lại reachable", (name) => {
@@ -335,6 +366,10 @@ describe("filterGraph — bất biến và oracle brute-force", () => {
     ["routeClient", { clientCode: "Z" }],
     ["asymmetric", { clientCode: "A" }],
     ["asymmetric", { clientCode: "B" }],
+    ["compoundWarehouse", { whseid: "204" }],
+    ["compoundWarehouse", { whseid: "510" }],
+    ["optionalClient", { "currentUser.clientCode": "TTC" }],
+    ["optionalClient", { "currentUser.clientCode": "OTHER" }],
   ] as const)("không thiếu node thuộc hợp mọi đường khả thi: %s %j", (name, constraints) => {
     const input = golden(name);
     const expectedSafe = bruteForcePathUnion(input, constraints);

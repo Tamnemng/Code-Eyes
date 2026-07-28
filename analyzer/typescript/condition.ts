@@ -19,8 +19,18 @@ export function analyzeCondition(expr: ts.Expression, sf: ts.SourceFile): Condit
   const exact = parseExact(expr, sf);
   if (exact) return { condition: { raw, parsed: exact }, confidence: "certain" };
 
-  const conjunct = firstParsableConjunct(expr, sf);
-  if (conjunct) return { condition: { raw, parsed: conjunct }, confidence: "unknown" };
+  const conjuncts = parsableConjuncts(expr, sf);
+  const first = conjuncts[0];
+  if (first !== undefined) {
+    return {
+      condition: {
+        raw,
+        parsed: first,
+        ...(conjuncts.length > 1 ? { parsedConjuncts: conjuncts } : {}),
+      },
+      confidence: "unknown",
+    };
+  }
 
   return { condition: { raw }, confidence: "unknown" };
 }
@@ -40,14 +50,15 @@ export function analyzeCaseClause(
   sf: ts.SourceFile,
 ): ConditionInfo {
   const raw = `case ${clause.expression.getText(sf)}`;
-  if (ts.isStringLiteral(clause.expression) && isVariableExpression(discriminant)) {
+  const value = caseValue(clause.expression, sf);
+  if (value !== undefined && isVariableExpression(discriminant)) {
     return {
       condition: {
         raw,
         parsed: {
           variable: discriminant.getText(sf),
           operator: "==",
-          value: clause.expression.text,
+          value,
         },
       },
       confidence: "certain",
@@ -80,6 +91,27 @@ export function isVariableExpression(expr: ts.Expression): boolean {
   return false;
 }
 
+/**
+ * Tên ổn định dùng trong UI filter. Optional property access vẫn đọc cùng một field,
+ * nên `currentUser?.clientCode` và `currentUser.clientCode` dùng chung constraint key.
+ */
+function filterVariableName(expr: ts.Expression, sf: ts.SourceFile): string | undefined {
+  const e = unwrapParens(expr);
+  if (ts.isIdentifier(e)) return e.text;
+  if (e.kind === ts.SyntaxKind.ThisKeyword) return "this";
+  if (!ts.isPropertyAccessExpression(e)) return undefined;
+  const base = filterVariableName(e.expression, sf);
+  return base === undefined ? undefined : `${base}.${e.name.getText(sf)}`;
+}
+
+/** Case tĩnh mà người dùng có thể chọn bằng đúng nhãn source, gồm string/number/enum member. */
+function caseValue(expr: ts.Expression, sf: ts.SourceFile): string | undefined {
+  const e = unwrapParens(expr);
+  if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return e.text;
+  if (ts.isNumericLiteral(e)) return e.text;
+  return isVariableExpression(e) ? e.getText(sf) : undefined;
+}
+
 function variableAndLiteral(
   left: ts.Expression,
   right: ts.Expression,
@@ -87,11 +119,13 @@ function variableAndLiteral(
 ): { variable: string; value: string } | undefined {
   const l = unwrapParens(left);
   const r = unwrapParens(right);
-  if (ts.isStringLiteral(r) && isVariableExpression(l)) {
-    return { variable: l.getText(sf), value: r.text };
+  const leftVariable = filterVariableName(l, sf);
+  const rightVariable = filterVariableName(r, sf);
+  if (ts.isStringLiteral(r) && leftVariable !== undefined) {
+    return { variable: leftVariable, value: r.text };
   }
-  if (ts.isStringLiteral(l) && isVariableExpression(r)) {
-    return { variable: r.getText(sf), value: l.text };
+  if (ts.isStringLiteral(l) && rightVariable !== undefined) {
+    return { variable: rightVariable, value: l.text };
   }
   return undefined;
 }
@@ -120,18 +154,20 @@ function parseExact(expr: ts.Expression, sf: ts.SourceFile): ParsedCondition | u
     const arg = e.arguments[0];
     if (arg === undefined) return undefined;
     const method = callee.name.text;
+    const calleeVariable = filterVariableName(callee.expression, sf);
 
     // x.startsWith("A")
-    if (method === "startsWith" && ts.isStringLiteral(arg) && isVariableExpression(callee.expression)) {
+    if (method === "startsWith" && ts.isStringLiteral(arg) && calleeVariable !== undefined) {
       return {
-        variable: callee.expression.getText(sf),
+        variable: calleeVariable,
         operator: "startsWith",
         value: arg.text,
       };
     }
 
     // ["A","B"].includes(x)
-    if (method === "includes" && isVariableExpression(arg)) {
+    const argumentVariable = filterVariableName(arg, sf);
+    if (method === "includes" && argumentVariable !== undefined) {
       const target = unwrapParens(callee.expression);
       if (!ts.isArrayLiteralExpression(target) || target.elements.length === 0) return undefined;
       const values: string[] = [];
@@ -139,7 +175,7 @@ function parseExact(expr: ts.Expression, sf: ts.SourceFile): ParsedCondition | u
         if (!ts.isStringLiteral(element)) return undefined;
         values.push(element.text);
       }
-      return { variable: arg.getText(sf), operator: "in", value: values };
+      return { variable: argumentVariable, operator: "in", value: values };
     }
   }
 
@@ -161,22 +197,20 @@ function flattenAnd(expr: ts.Expression, out: ts.Expression[]): void {
  * Chỉ áp dụng cho `&&`: một hạng tử false là cả biểu thức false (đúng chiều mà filter cần).
  * Với `||` thì kết luận chạy ngược chiều nên KHÔNG điền parsed - xem SEMANTICS §12.
  */
-function firstParsableConjunct(
+function parsableConjuncts(
   expr: ts.Expression,
   sf: ts.SourceFile,
-): ParsedCondition | undefined {
+): ParsedCondition[] {
   const e = unwrapParens(expr);
   if (
     !ts.isBinaryExpression(e) ||
     e.operatorToken.kind !== ts.SyntaxKind.AmpersandAmpersandToken
   ) {
-    return undefined;
+    return [];
   }
   const parts: ts.Expression[] = [];
   flattenAnd(e, parts);
-  for (const part of parts) {
-    const parsed = parseExact(part, sf);
-    if (parsed) return parsed;
-  }
-  return undefined;
+  return parts
+    .map((part) => parseExact(part, sf))
+    .filter((parsed): parsed is ParsedCondition => parsed !== undefined);
 }

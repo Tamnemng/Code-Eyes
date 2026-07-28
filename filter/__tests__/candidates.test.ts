@@ -29,4 +29,43 @@ describe("collectFilterCandidates", () => {
   it("không bịa candidate từ raw condition không có parsed", () => {
     expect(collectFilterCandidates(loadGolden("g-filter-complexSwitch"))).toEqual([]);
   });
+
+  it("lists every && variable, optional access, and enum switch cases", () => {
+    expect(collectFilterCandidates(loadGolden("g-filter-compoundWarehouse"))).toEqual([
+      {
+        variable: "currentUser.clientCode",
+        values: ["SAINTGOBAIN"],
+        certainNodes: 0,
+        unknownNodes: 1,
+      },
+      {
+        variable: "whseid",
+        values: ["510"],
+        certainNodes: 0,
+        unknownNodes: 1,
+      },
+    ]);
+
+    expect(collectFilterCandidates(loadGolden("g-filter-optionalClient"))).toEqual([
+      {
+        variable: "currentUser.clientCode",
+        values: ["TTC"],
+        certainNodes: 1,
+        unknownNodes: 0,
+      },
+    ]);
+
+    expect(collectFilterCandidates(loadGolden("g-filter-routeTask"))).toEqual([
+      {
+        variable: "data.taskType",
+        values: [
+          "ETaskType.RECEIVE_BY_LPN",
+          "ETaskType.RECEIVE_BY_UPC",
+          "ETaskType.UPDATE_RECEIPT_BY_UPC",
+        ],
+        certainNodes: 3,
+        unknownNodes: 0,
+      },
+    ]);
+  });
 });
