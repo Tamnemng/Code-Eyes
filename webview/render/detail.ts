@@ -1,7 +1,7 @@
 // webview/render/detail.ts
 // Panel bên: `code` đầy đủ + `kind` + `confidence` + nút "Jump to line".
 
-import type { CalleeLink } from "../../shared/protocol";
+import type { CalleeLink, GitNodeChange } from "../../shared/protocol";
 import type { FlowNode } from "../../shared/types";
 import { messagesFor } from "../i18n";
 import type { DisplayGraph } from "../model/display-graph";
@@ -27,6 +27,7 @@ export interface DetailOptions {
   callees: readonly CalleeLink[];
   onOpenCallee: (targetId: string) => void;
   locale: Locale;
+  gitChange: GitNodeChange | undefined;
 }
 
 export function renderDetail(
@@ -75,6 +76,19 @@ export function renderDetail(
     row("confidence", node.confidence),
     row(messages.line, `${node.range.startLine}–${node.range.endLine}`),
   );
+  if (options.gitChange !== undefined) {
+    const change = options.gitChange;
+    panel.append(
+      row(
+        "Git",
+        messages.gitLineSummary(
+          change.addedLines,
+          change.modifiedLines,
+          change.deletedLines,
+        ),
+      ),
+    );
+  }
   if (node.condition !== undefined) {
     panel.append(row("condition", node.condition.raw));
     panel.append(

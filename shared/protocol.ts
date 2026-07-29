@@ -31,6 +31,20 @@ export interface GraphNavigation {
   canGoBack: boolean;
 }
 
+export type GitChangeKind = "added" | "modified" | "deleted";
+
+/**
+ * Trạng thái Git của node hiện tại so với HEAD.
+ * `deleted` là marker neo vào node gần đoạn đã xoá nhất vì code đã xoá không còn FlowNode để vẽ.
+ */
+export interface GitNodeChange {
+  nodeId: string;
+  kind: GitChangeKind;
+  addedLines: number;
+  modifiedLines: number;
+  deletedLines: number;
+}
+
 /** Host -> webview. */
 export type HostToWebview =
   | {
@@ -38,6 +52,7 @@ export type HostToWebview =
       graph: FlowGraph;
       callees: CalleeLink[];
       navigation: GraphNavigation;
+      gitChanges: GitNodeChange[];
     }
   | { type: "analyzeError"; code: AnalyzeErrorCode; message: string };
 

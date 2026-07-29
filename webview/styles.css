@@ -25,6 +25,9 @@
   --cf-line-strong: var(--vscode-editorWidget-border, #39414f);
   --cf-focus: var(--vscode-focusBorder, #5b9dd9);
   --cf-danger: var(--vscode-errorForeground, #d97070);
+  --cf-git-added: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
+  --cf-git-modified: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  --cf-git-deleted: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
 
   /* Ép alpha = 1 trước khi pha: theme có thể khai báo các màu button/widget trong suốt.
      Nền vẫn lấy hue từ editor VS Code, nhưng toolbar, popover và control luôn là mặt đặc. */
@@ -183,6 +186,27 @@ body {
   color: var(--cf-focus);
   white-space: nowrap;
 }
+
+.cf-git-legend {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  padding: 2px 5px;
+  background: var(--cf-control-bg);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 4px;
+  font-family: var(--cf-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cf-git-legend[hidden] {
+  display: none;
+}
+
+.cf-git-legend-added { color: var(--cf-git-added); }
+.cf-git-legend-modified { color: var(--cf-git-modified); }
+.cf-git-legend-deleted { color: var(--cf-git-deleted); }
 
 .cf-toolbar button {
   font-family: inherit;
@@ -606,6 +630,31 @@ body {
   pointer-events: none;
 }
 
+/* Git diff so với HEAD: fill vẫn giữ kind, viền/glow mang trạng thái thay đổi. */
+.cf-node.cf-git-added .cf-shape {
+  fill: color-mix(in srgb, var(--cf-git-added) 22%, var(--cf-node-fill, var(--cf-surface)));
+  stroke: var(--cf-git-added);
+  stroke-width: 2.4;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cf-git-added) 55%, transparent));
+}
+
+.cf-node.cf-git-modified .cf-shape {
+  fill: color-mix(in srgb, var(--cf-git-modified) 24%, var(--cf-node-fill, var(--cf-surface)));
+  stroke: var(--cf-git-modified);
+  stroke-width: 2.6;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--cf-git-modified) 65%, transparent));
+}
+
+.cf-node.cf-git-deleted .cf-shape {
+  fill: color-mix(in srgb, var(--cf-git-deleted) 20%, var(--cf-node-fill, var(--cf-surface)));
+  stroke: var(--cf-git-deleted);
+  stroke-width: 2.6;
+  stroke-dasharray: 5 2;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--cf-git-deleted) 65%, transparent));
+}
+
 /* selected: viền accent + một vòng sáng mảnh. Không đổ bóng nặng. */
 .cf-node.cf-selected .cf-shape {
   stroke: var(--cf-focus);
@@ -664,6 +713,23 @@ body {
   position: relative;
   flex: 0 0 auto;
 }
+
+.cf-git-badge-bg {
+  fill: var(--cf-bg-raised);
+  stroke: var(--cf-line-strong);
+  stroke-width: 1.2;
+}
+
+.cf-git-count {
+  font-family: var(--cf-font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.cf-git-count-added { fill: var(--cf-git-added); }
+.cf-git-count-modified { fill: var(--cf-git-modified); }
+.cf-git-count-deleted { fill: var(--cf-git-deleted); }
 
 .cf-filter {
   position: relative;

@@ -4,9 +4,10 @@ import path from "node:path";
 import * as vscode from "vscode";
 
 import { analyzeFunctionAtCursor } from "../analyzer/typescript";
-import type { HostToWebview } from "../shared/protocol";
+import type { GitNodeChange, HostToWebview } from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
 import { collectCallSites, type CallSite } from "./call-sites";
+import { gitChangesForSource } from "./git-diff";
 import {
   AUTO_INLINE_GRAPH_LIMIT,
   inlineCalleeGraph,
@@ -124,7 +125,7 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
             void this.openCallee(message.targetId);
             break;
           case "navigateBack":
-            this.navigateBack();
+            void this.navigateBack();
             break;
         }
       },
@@ -166,7 +167,7 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
       });
       const frame = this.makeFrame(document, sourceText, graph);
       this.frames = [await this.autoInlineWrapper(frame)];
-      this.updateGraphMessage();
+      await this.updateGraphMessage();
     } catch (error: unknown) {
       const classified = classifyAnalyzeError(error);
       this.frames = [];
@@ -297,9 +298,36 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
     return this.frames[this.frames.length - 1];
   }
 
-  private updateGraphMessage(): void {
+  private async collectGitChanges(frame: GraphFrame): Promise<GitNodeChange[]> {
+    const byUri = new Map<string, { source: SourceRef; nodes: FlowGraph["nodes"] }>();
+    for (const node of frame.graph.nodes) {
+      const source = frame.sources.get(node.id);
+      if (source === undefined) continue;
+      const key = source.uri.toString();
+      const group = byUri.get(key);
+      if (group === undefined) byUri.set(key, { source, nodes: [node] });
+      else group.nodes.push(node);
+    }
+
+    const groups = await Promise.all(
+      [...byUri.values()].map(async ({ source, nodes }) => {
+        try {
+          const document = await vscode.workspace.openTextDocument(source.uri);
+          if (document.version !== source.version) return [];
+          return await gitChangesForSource(source.uri.fsPath, document.getText(), nodes);
+        } catch {
+          return [];
+        }
+      }),
+    );
+    return groups.flat();
+  }
+
+  private async updateGraphMessage(): Promise<void> {
     const frame = this.currentFrame();
     if (frame === undefined) return;
+    const gitChanges = await this.collectGitChanges(frame);
+    if (this.currentFrame() !== frame) return;
     this.latestMessage = {
       type: "graph",
       graph: frame.graph,
@@ -312,13 +340,14 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
         breadcrumbs: this.frames.map(({ graph }) => graph.functionName),
         canGoBack: this.frames.length > 1,
       },
+      gitChanges,
     };
   }
 
-  private navigateBack(): void {
+  private async navigateBack(): Promise<void> {
     if (this.frames.length <= 1) return;
     this.frames.pop();
-    this.updateGraphMessage();
+    await this.updateGraphMessage();
     this.postLatestIfReady();
   }
 
@@ -349,7 +378,7 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
       }
 
       this.frames.push(await this.autoInlineWrapper(resolved.frame));
-      this.updateGraphMessage();
+      await this.updateGraphMessage();
       this.postLatestIfReady();
     } catch (error: unknown) {
       const classified = classifyAnalyzeError(error);

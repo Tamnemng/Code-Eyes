@@ -5,6 +5,7 @@ import "./styles.css";
 import type {
   AnalyzeErrorCode,
   CalleeLink,
+  GitNodeChange,
   GraphNavigation,
   HostToWebview,
 } from "../shared/protocol";
@@ -59,18 +60,55 @@ function parseNavigation(value: unknown): GraphNavigation | undefined {
   };
 }
 
+function parseGitChanges(value: unknown): GitNodeChange[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const result: GitNodeChange[] = [];
+  for (const item of value) {
+    if (
+      !isRecord(item) ||
+      typeof item["nodeId"] !== "string" ||
+      (item["kind"] !== "added" &&
+        item["kind"] !== "modified" &&
+        item["kind"] !== "deleted") ||
+      typeof item["addedLines"] !== "number" ||
+      !Number.isInteger(item["addedLines"]) ||
+      item["addedLines"] < 0 ||
+      typeof item["modifiedLines"] !== "number" ||
+      !Number.isInteger(item["modifiedLines"]) ||
+      item["modifiedLines"] < 0 ||
+      typeof item["deletedLines"] !== "number" ||
+      !Number.isInteger(item["deletedLines"]) ||
+      item["deletedLines"] < 0
+    ) {
+      return undefined;
+    }
+    result.push({
+      nodeId: item["nodeId"],
+      kind: item["kind"],
+      addedLines: item["addedLines"],
+      modifiedLines: item["modifiedLines"],
+      deletedLines: item["deletedLines"],
+    });
+  }
+  return result;
+}
+
 /** `event.data` là unknown thật sự; chỉ graph do analyzer sinh được tin sau khi kiểm envelope. */
 function parseMessage(data: unknown): HostToWebview | undefined {
   if (!isRecord(data)) return undefined;
   if (data["type"] === "graph" && isRecord(data["graph"])) {
     const callees = parseCallees(data["callees"]);
     const navigation = parseNavigation(data["navigation"]);
-    if (callees === undefined || navigation === undefined) return undefined;
+    const gitChanges = parseGitChanges(data["gitChanges"]);
+    if (callees === undefined || navigation === undefined || gitChanges === undefined) {
+      return undefined;
+    }
     return {
       type: "graph",
       graph: data["graph"] as unknown as FlowGraph,
       callees,
       navigation,
+      gitChanges,
     };
   }
   if (data["type"] === "analyzeError") {
@@ -103,6 +141,7 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
     view.setGraph(message.graph, {
       callees: message.callees,
       navigation: message.navigation,
+      gitChanges: message.gitChanges,
     });
   } else {
     view.showError(message.message);

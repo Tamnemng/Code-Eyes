@@ -12,7 +12,7 @@
 //   3. đổi độ dày cạnh / bảng màu              -> đổi CSS variable           (gần như free)
 // Trước đây mọi thứ đi đường 1: bấm chọn một node trên hàm 714 node = chạy lại ELK 6.4 giây.
 
-import type { CalleeLink, GraphNavigation } from "../shared/protocol";
+import type { CalleeLink, GitNodeChange, GraphNavigation } from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
 import { collectFilterCandidates, type FilterCandidate } from "../filter/candidates";
 import { filterGraph, filterStats } from "../filter/filterGraph";
@@ -53,6 +53,7 @@ export interface ViewOptions {
 export interface GraphContext {
   callees?: readonly CalleeLink[];
   navigation?: GraphNavigation;
+  gitChanges?: readonly GitNodeChange[];
 }
 
 export interface View {
@@ -155,6 +156,10 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   const filterReadout = document.createElement("span");
   filterReadout.className = "cf-filter-readout";
   filterReadout.hidden = true;
+  const gitLegend = document.createElement("span");
+  gitLegend.className = "cf-git-legend";
+  gitLegend.title = "Git diff vs HEAD";
+  gitLegend.hidden = true;
   const filterBox = document.createElement("details");
   filterBox.className = "cf-filter";
   const filterSummary = document.createElement("summary");
@@ -196,6 +201,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     heading,
     stats,
     filterReadout,
+    gitLegend,
     filterBox,
     settingsBox,
     expandButton,
@@ -240,12 +246,35 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   let calleeLinks: readonly CalleeLink[] = [];
   let sourceGraph: FlowGraph | undefined;
   let sourceContext: GraphContext | undefined;
+  let gitChanges = new Map<string, GitNodeChange>();
   let filterControls: FilterControl[] = [];
   let openSuggestionControl: HTMLElement | undefined;
   let closeOpenSuggestions: (() => void) | undefined;
   let renderSourceGraph: (() => void) | undefined;
 
   const persist = (): void => options.onStateChange(state);
+
+  const paintGitLegend = (): void => {
+    const changes = [...gitChanges.values()];
+    const counts = {
+      added: changes.filter((change) => change.addedLines > 0).length,
+      modified: changes.filter((change) => change.modifiedLines > 0).length,
+      deleted: changes.filter((change) => change.deletedLines > 0).length,
+    };
+    gitLegend.replaceChildren();
+    for (const [kind, symbol] of [
+      ["added", "+"],
+      ["modified", "~"],
+      ["deleted", "−"],
+    ] as const) {
+      if (counts[kind] === 0) continue;
+      const item = document.createElement("span");
+      item.className = `cf-git-legend-${kind}`;
+      item.textContent = `${symbol}${counts[kind]}`;
+      gitLegend.append(item);
+    }
+    gitLegend.hidden = gitLegend.childElementCount === 0;
+  };
 
   // Hai popover cùng neo ở góc phải toolbar nên tuyệt đối không được mở chồng nhau.
   // Dùng `toggle` thay vì chỉ bắt click trên summary để cả thay đổi bằng bàn phím cũng nhất quán.
@@ -318,6 +347,10 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         callees: calleeLinks,
         onOpenCallee: options.onOpenCallee,
         locale: state.settings.locale,
+        gitChange:
+          state.selectedSourceId === undefined
+            ? undefined
+            : gitChanges.get(state.selectedSourceId),
       });
     } else {
       detail.replaceChildren();
@@ -375,6 +408,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         hiddenCounts: view.hiddenCounts,
         selectedSourceId: state.selectedSourceId,
         settings: state.settings,
+        gitChanges,
         onSelect: (sourceId) => {
           if (state.selectedSourceId === sourceId) return;
           state = { ...state, selectedSourceId: sourceId };
@@ -806,6 +840,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     if (next === undefined) return;
     const context = sourceContext;
     calleeLinks = context?.callees ?? [];
+    gitChanges = new Map((context?.gitChanges ?? []).map((change) => [change.nodeId, change]));
+    paintGitLegend();
     const graphNavigation = context?.navigation ?? {
       breadcrumbs: [next.functionName],
       canGoBack: false,
@@ -877,6 +913,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       heading.textContent = messages.graphError;
       stats.textContent = "";
       filterReadout.hidden = true;
+      gitLegend.hidden = true;
       filterBox.open = false;
       filterBox.classList.remove("cf-filter-active");
       filterRows.replaceChildren();

@@ -69,6 +69,11 @@ describe("styles.css - các class mà svg.ts và detail.ts dựa vào", () => {
     ".cf-arrow",
     ".cf-arrow-back",
     ".cf-badge",
+    ".cf-git-badge",
+    ".cf-git-added",
+    ".cf-git-modified",
+    ".cf-git-deleted",
+    ".cf-git-legend",
     ".cf-toggle",
     ".cf-inferred-mark",
     ".cf-selected",
@@ -101,6 +106,16 @@ describe("styles.css - các class mà svg.ts và detail.ts dựa vào", () => {
   it("có trạng thái hover và selected rõ ràng", () => {
     expect(css).toMatch(/\.cf-node:hover\s+\.cf-shape/);
     expect(css).toMatch(/\.cf-node\.cf-selected\s+\.cf-shape/);
+  });
+
+  it("Git diff dùng token VS Code: xanh thêm, màu nhấn sửa, đỏ xoá", () => {
+    expect(css).toContain("--vscode-gitDecoration-addedResourceForeground");
+    expect(css).toContain("--vscode-gitDecoration-modifiedResourceForeground");
+    expect(css).toContain("--vscode-gitDecoration-deletedResourceForeground");
+    expect(css).toMatch(/\.cf-node\.cf-git-added\s+\.cf-shape/);
+    expect(css).toMatch(/\.cf-node\.cf-git-modified\s+\.cf-shape/);
+    expect(css).toMatch(/\.cf-node\.cf-git-deleted\s+\.cf-shape/);
+    expect(viewSource).toContain("paintGitLegend");
   });
 
   it("màu cứng CHỈ được nằm trong khối khai báo token, không trong rule của component", () => {

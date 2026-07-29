@@ -52,6 +52,7 @@ export interface UiMessages {
     borderSolid: string;
     borderInferred: string;
     borderDashed: string;
+    gitLineSummary: (added: number, modified: number, deleted: number) => string;
     fanout: (copies: number) => string;
   };
 }
@@ -115,6 +116,8 @@ const VI: UiMessages = {
       "Suy luận MỘT CHIỀU: điều kiện phức hợp có một hạng tử đọc được. " +
       "Filter chỉ được cắt nhánh true khi hạng tử đó chắc chắn false (SEMANTICS §12).",
     borderDashed: "Analyzer KHÔNG đọc được điều kiện này. Cả hai nhánh phải giữ.",
+    gitLineSummary: (added, modified, deleted) =>
+      `Chưa commit: +${added} dòng thêm, ~${modified} dòng sửa, −${deleted} dòng xoá`,
     fanout: (copies) =>
       `Node này được vẽ thành ${copies} bản sao (một bản cho mỗi đường vào). ` +
       "Mỗi bản giữ CẢ các mũi tên ra, nên một return sớm vẫn 'thấy' đường chảy tiếp sau " +
@@ -182,6 +185,8 @@ const EN: UiMessages = {
       "ONE-WAY inference: one term of this compound condition is readable. " +
       "The filter may only remove the true branch when that term is certainly false (SEMANTICS §12).",
     borderDashed: "The analyzer cannot understand this condition. Both branches must remain.",
+    gitLineSummary: (added, modified, deleted) =>
+      `Not committed: +${added} added, ~${modified} modified, −${deleted} deleted lines`,
     fanout: (copies) =>
       `This node is drawn as ${copies} copies (one per incoming path). ` +
       "Each copy keeps ALL outgoing edges, so an early return may still appear to continue after " +

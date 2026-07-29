@@ -2,6 +2,7 @@
 // Vẽ node + edge từ kết quả ELK. Chạm DOM nên không test tự động (phần thuần đã tách ra
 // `shapes.ts`, `node-style.ts`, `metrics.ts`).
 
+import type { GitNodeChange } from "../../shared/protocol";
 import type { DisplayGraph, DisplayNode } from "../model/display-graph";
 import { borderFor, styleForKind } from "../model/node-style";
 import type { Layout } from "../layout/run-elk";
@@ -20,6 +21,7 @@ export interface RenderOptions {
   hiddenCounts: ReadonlyMap<string, number>;
   selectedSourceId: string | undefined;
   settings: DisplaySettings;
+  gitChanges: ReadonlyMap<string, GitNodeChange>;
 }
 
 function element<K extends keyof SVGElementTagNameMap>(
@@ -160,9 +162,13 @@ function buildNode(
   const geometry = geometryFor(style.shape, laid.width, laid.height);
   const border = borderFor(node.node);
   const selected = options.selectedSourceId === node.sourceId;
+  const gitChange = options.gitChanges.get(node.sourceId);
+  const gitClass = gitChange === undefined ? "" : ` cf-git-${gitChange.kind}`;
 
   const group = element("g", {
-    class: `cf-node cf-node-${node.node.kind} cf-border-${border}${selected ? " cf-selected" : ""}`,
+    class:
+      `cf-node cf-node-${node.node.kind} cf-border-${border}` +
+      `${selected ? " cf-selected" : ""}${gitClass}`,
     transform: `translate(${laid.x},${laid.y})`,
     "data-source-id": node.sourceId,
     tabindex: 0,
@@ -201,6 +207,47 @@ function buildNode(
     const count = element("text", { x: laid.width - 13, y: laid.height + 2, "text-anchor": "middle" });
     count.textContent = `+${hidden}`;
     badge.append(count);
+    group.append(badge);
+  }
+
+  if (gitChange !== undefined) {
+    const labels = [
+      gitChange.addedLines > 0
+        ? { kind: "added", text: `+${gitChange.addedLines}` }
+        : undefined,
+      gitChange.modifiedLines > 0
+        ? { kind: "modified", text: `~${gitChange.modifiedLines}` }
+        : undefined,
+      gitChange.deletedLines > 0
+        ? { kind: "deleted", text: `−${gitChange.deletedLines}` }
+        : undefined,
+    ].filter(
+      (item): item is { kind: "added" | "modified" | "deleted"; text: string } =>
+        item !== undefined,
+    );
+    const width = 10 + labels.reduce((sum, label) => sum + label.text.length * 7 + 5, 0);
+    const badge = element("g", { class: "cf-git-badge" });
+    badge.append(
+      element("rect", {
+        x: -4,
+        y: laid.height - 9,
+        width,
+        height: 16,
+        rx: 8,
+        class: "cf-git-badge-bg",
+      }),
+    );
+    let x = 2;
+    for (const label of labels) {
+      const text = element("text", {
+        x,
+        y: laid.height + 2,
+        class: `cf-git-count cf-git-count-${label.kind}`,
+      });
+      text.textContent = label.text;
+      badge.append(text);
+      x += label.text.length * 7 + 5;
+    }
     group.append(badge);
   }
 
