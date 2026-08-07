@@ -90,6 +90,12 @@ export function optionalClient(
   return "other";
 }
 
+export function queryResultChecks(receipt: { orderclose: number } | null, rows: unknown[]): string {
+  if (receipt?.orderclose === 1) return "closed";
+  if (rows.length === 0) return "empty";
+  return "open";
+}
+
 export function routeTask(data: { taskType: ETaskType }): string {
   switch (data.taskType) {
     case ETaskType.RECEIVE_BY_LPN:

@@ -61,7 +61,8 @@
           "operator": "==",
           "value": "A"
         }
-      }
+      },
+      "parentId": "n_3"
     },
     {
       "id": "n_5",
@@ -74,7 +75,8 @@
         "endLine": 100,
         "endCol": 15
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_4"
     },
     {
       "id": "n_6",
@@ -87,7 +89,8 @@
         "endLine": 102,
         "endCol": 28
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_3"
     }
   ],
   "edges": [

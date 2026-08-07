@@ -7,6 +7,32 @@
 
 import type { DisplaySettings } from "./settings";
 import { defaultSettings, restoreSettings } from "./settings";
+import type { TraceDecision, TraceScalar } from "../filter/guidedTrace";
+
+export interface TraceTrailItem {
+  graphKey: string;
+  functionName: string;
+  summary: string;
+}
+
+export type TraceUndoAction =
+  | { graphKey: string; kind: "decision"; nodeId: string }
+  | {
+      graphKey: string;
+      kind: "runtime";
+      variable: string;
+      hadPrevious: boolean;
+      previous?: TraceScalar;
+    };
+
+export interface TraceSessionState {
+  active: boolean;
+  input: string;
+  decisions: Record<string, Record<string, TraceDecision>>;
+  runtimeValues: Record<string, Record<string, TraceScalar>>;
+  trail: TraceTrailItem[];
+  actions: TraceUndoAction[];
+}
 
 export interface Transform {
   x: number;
@@ -29,6 +55,10 @@ export interface ViewState {
   selectedSourceId: string | undefined;
   /** Ràng buộc filter của graph hiện tại. Key/value đều là source text/string literal. */
   constraints: Record<string, string>;
+  /** Bật các override true/false cho condition phụ thuộc dữ liệu query/runtime. */
+  mockQueryEnabled: boolean;
+  /** Phiên debug giả lập; giữ qua navigation để body đi tiếp sang callee. */
+  trace: TraceSessionState;
   transform: Transform;
   /** Tuỳ chỉnh hiển thị (cỡ node, cỡ chữ, độ dày cạnh, bảng màu). Xem `settings.ts`. */
   settings: DisplaySettings;
@@ -52,6 +82,15 @@ export function initialState(): ViewState {
     collapsedIds: new Set(),
     selectedSourceId: undefined,
     constraints: {},
+    mockQueryEnabled: false,
+    trace: {
+      active: false,
+      input: "{\n  \"taskType\": \"\"\n}",
+      decisions: {},
+      runtimeValues: {},
+      trail: [],
+      actions: [],
+    },
     transform: { x: 0, y: 0, scale: 1 },
     settings: defaultSettings(),
   };
@@ -63,11 +102,13 @@ export function serializeState(state: ViewState): unknown {
     Object.entries(state.constraints).sort(([left], [right]) => left.localeCompare(right)),
   );
   return {
-    version: 1,
+    version: 2,
     graphKey: state.graphKey ?? null,
     collapsedIds: [...state.collapsedIds].sort(),
     selectedSourceId: state.selectedSourceId ?? null,
     constraints,
+    mockQueryEnabled: state.mockQueryEnabled,
+    trace: state.trace,
     transform: state.transform,
     settings: state.settings,
   };
@@ -79,6 +120,153 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function numberOr(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+/** Hoàn tác đúng một câu trả lời/mock trong graph hiện tại; undefined nghĩa là caller cần back frame. */
+export function undoTraceAction(
+  trace: TraceSessionState,
+  graphKey: string,
+): TraceSessionState | undefined {
+  let actionIndex = -1;
+  for (let index = trace.actions.length - 1; index >= 0; index -= 1) {
+    if (trace.actions[index]?.graphKey === graphKey) {
+      actionIndex = index;
+      break;
+    }
+  }
+  if (actionIndex < 0) return undefined;
+  const action = trace.actions[actionIndex];
+  if (action === undefined) return undefined;
+  const actions = trace.actions.filter((_, index) => index !== actionIndex);
+  const decisions = { ...trace.decisions };
+  const runtimeValues = { ...trace.runtimeValues };
+
+  if (action.kind === "decision") {
+    const frame = { ...decisions[action.graphKey] };
+    const current = frame[action.nodeId];
+    if (current?.kind === "branches" && current.outcomes.length > 2) {
+      frame[action.nodeId] = { kind: "branches", outcomes: current.outcomes.slice(0, -1) };
+    } else if (current?.kind === "branches" && current.outcomes[0] !== undefined) {
+      frame[action.nodeId] = { kind: "branch", outcome: current.outcomes[0] };
+    } else {
+      delete frame[action.nodeId];
+    }
+    decisions[action.graphKey] = frame;
+  } else {
+    const frame = { ...runtimeValues[action.graphKey] };
+    if (action.hadPrevious) frame[action.variable] = action.previous ?? null;
+    else delete frame[action.variable];
+    runtimeValues[action.graphKey] = frame;
+  }
+  return { ...trace, actions, decisions, runtimeValues };
+}
+
+function restoreTraceDecision(value: unknown): TraceDecision | undefined {
+  if (!isRecord(value)) return undefined;
+  if (
+    value["kind"] === "branch" &&
+    (value["outcome"] === "true" || value["outcome"] === "false")
+  ) {
+    return { kind: "branch", outcome: value["outcome"] };
+  }
+  if (
+    value["kind"] === "branches" &&
+    Array.isArray(value["outcomes"]) &&
+    value["outcomes"].every((item) => item === "true" || item === "false")
+  ) {
+    return { kind: "branches", outcomes: value["outcomes"] };
+  }
+  if (value["kind"] === "edge" && typeof value["targetId"] === "string") {
+    return { kind: "edge", targetId: value["targetId"] };
+  }
+  return undefined;
+}
+
+function restoreTrace(raw: unknown, fallback: TraceSessionState): TraceSessionState {
+  if (!isRecord(raw)) return fallback;
+  const trace: TraceSessionState = {
+    active: typeof raw["active"] === "boolean" ? raw["active"] : false,
+    input: typeof raw["input"] === "string" ? raw["input"] : fallback.input,
+    decisions: {},
+    runtimeValues: {},
+    trail: [],
+    actions: [],
+  };
+  const decisions = raw["decisions"];
+  if (isRecord(decisions)) {
+    for (const [graphKey, graphDecisions] of Object.entries(decisions)) {
+      if (!isRecord(graphDecisions)) continue;
+      const restored: Record<string, TraceDecision> = {};
+      for (const [nodeId, decision] of Object.entries(graphDecisions)) {
+        const parsed = restoreTraceDecision(decision);
+        if (parsed !== undefined) restored[nodeId] = parsed;
+      }
+      trace.decisions[graphKey] = restored;
+    }
+  }
+  const runtimeValues = raw["runtimeValues"];
+  if (isRecord(runtimeValues)) {
+    for (const [graphKey, graphValues] of Object.entries(runtimeValues)) {
+      if (!isRecord(graphValues)) continue;
+      const restored: Record<string, TraceScalar> = {};
+      for (const [name, value] of Object.entries(graphValues)) {
+        if (value === null || ["string", "number", "boolean"].includes(typeof value)) {
+          restored[name] = value as TraceScalar;
+        }
+      }
+      trace.runtimeValues[graphKey] = restored;
+    }
+  }
+  const trail = raw["trail"];
+  if (Array.isArray(trail)) {
+    trace.trail = trail.flatMap((item) =>
+      isRecord(item) &&
+      typeof item["graphKey"] === "string" &&
+      typeof item["functionName"] === "string" &&
+      typeof item["summary"] === "string"
+        ? [
+            {
+              graphKey: item["graphKey"],
+              functionName: item["functionName"],
+              summary: item["summary"],
+            },
+          ]
+        : [],
+    );
+  }
+  const actions = raw["actions"];
+  if (Array.isArray(actions)) {
+    trace.actions = actions.flatMap((item): TraceUndoAction[] => {
+      if (!isRecord(item) || typeof item["graphKey"] !== "string") return [];
+      if (item["kind"] === "decision" && typeof item["nodeId"] === "string") {
+        return [{ graphKey: item["graphKey"], kind: "decision", nodeId: item["nodeId"] }];
+      }
+      if (
+        item["kind"] === "runtime" &&
+        typeof item["variable"] === "string" &&
+        typeof item["hadPrevious"] === "boolean"
+      ) {
+        const previous = item["previous"];
+        if (
+          item["hadPrevious"] &&
+          !(previous === null || ["string", "number", "boolean"].includes(typeof previous))
+        ) {
+          return [];
+        }
+        return [
+          {
+            graphKey: item["graphKey"],
+            kind: "runtime",
+            variable: item["variable"],
+            hadPrevious: item["hadPrevious"],
+            ...(item["hadPrevious"] ? { previous: previous as TraceScalar } : {}),
+          },
+        ];
+      }
+      return [];
+    });
+  }
+  return trace;
 }
 
 /**
@@ -110,6 +298,10 @@ export function restoreState(raw: unknown): ViewState {
       if (variable !== "" && typeof value === "string") state.constraints[variable] = value;
     }
   }
+
+  state.mockQueryEnabled =
+    typeof raw["mockQueryEnabled"] === "boolean" ? raw["mockQueryEnabled"] : false;
+  state.trace = restoreTrace(raw["trace"], state.trace);
 
   const transform = raw["transform"];
   if (isRecord(transform)) {

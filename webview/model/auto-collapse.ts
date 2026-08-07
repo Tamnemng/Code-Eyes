@@ -40,9 +40,41 @@ export function initialCollapsedIds(graph: DisplayGraph): Set<string> {
   const tooManyForUser = sourceNodeCount(graph) > USER_THRESHOLD;
   const tooManyToRender = graph.nodes.length > RENDER_GUARD;
   if (tooManyForUser || tooManyToRender) {
+    // Progressive disclosure: giữ workflow/try ngoài cùng để người dùng vẫn thấy câu chuyện cấp cao,
+    // nhưng gập từng nhánh if/loop bên dưới. Mở một nhánh sẽ lộ ra các nhánh con vẫn đang gập.
     for (const node of graph.nodes) {
-      if (node.parentDisplayId === undefined && hasChildren.has(node.id)) {
+      if (
+        hasChildren.has(node.id) &&
+        (node.node.kind === "condition" ||
+          node.node.kind === "loop" ||
+          node.node.kind === "switch-case" ||
+          ((node.node.kind === "try" || node.node.kind === "catch") &&
+            node.parentDisplayId !== undefined))
+      ) {
         collapsed.add(node.sourceId);
+      }
+    }
+
+    const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+    const hiddenByProgressiveCollapse = (node: (typeof graph.nodes)[number]): boolean => {
+      let ancestor = byId.get(node.parentDisplayId ?? "");
+      while (ancestor !== undefined) {
+        if (collapsed.has(ancestor.sourceId)) return true;
+        ancestor = byId.get(ancestor.parentDisplayId ?? "");
+      }
+      return false;
+    };
+    const visibleAfterProgressive = graph.nodes.filter(
+      (node) => !hiddenByProgressiveCollapse(node),
+    ).length;
+
+    // Graph tuyến tính hoặc chỉ có một try khổng lồ mà không có khối con vẫn cần guard cũ để ELK
+    // không treo. Chỉ fallback khi progressive collapse chưa đưa graph xuống ngưỡng người dùng.
+    if (visibleAfterProgressive > USER_THRESHOLD) {
+      for (const node of graph.nodes) {
+        if (node.parentDisplayId === undefined && hasChildren.has(node.id)) {
+          collapsed.add(node.sourceId);
+        }
       }
     }
   }

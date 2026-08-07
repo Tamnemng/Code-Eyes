@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 import { analyzeFunctionAtCursor } from "../analyzer/typescript";
 import type { GitNodeChange, HostToWebview } from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
-import { collectCallSites, type CallSite } from "./call-sites";
+import { collectCallSites, collectFunctionParameters, type CallSite } from "./call-sites";
 import { gitChangesForSource } from "./git-diff";
 import {
   AUTO_INLINE_GRAPH_LIMIT,
@@ -38,6 +38,8 @@ interface GraphFrame {
   graph: FlowGraph;
   callSites: FrameCallSite[];
   sources: ReadonlyMap<string, SourceRef>;
+  parameters: string[];
+  aliases: Record<string, string>;
 }
 
 type ResolveCalleeResult =
@@ -199,6 +201,8 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
         ...source,
       })),
       sources: new Map(graph.nodes.map((node) => [node.id, source])),
+      parameters: collectFunctionParameters(document.uri.fsPath, sourceText, graph),
+      aliases: {},
     };
   }
 
@@ -285,6 +289,16 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
       return {
         graph: merged.graph,
         sources,
+        parameters: frame.parameters,
+        aliases: {
+          ...frame.aliases,
+          ...Object.fromEntries(
+            resolved.frame.parameters.flatMap((parameter, index) => {
+              const argument = callSite.arguments[index];
+              return argument === undefined ? [] : ([[parameter, argument]] as const);
+            }),
+          ),
+        },
         callSites: [
           ...frame.callSites.filter((site) => site.targetId !== callSite.targetId),
           ...nestedCallSites,
@@ -341,6 +355,7 @@ export class PanelController implements vscode.WebviewViewProvider, vscode.Dispo
         canGoBack: this.frames.length > 1,
       },
       gitChanges,
+      trace: { parameters: frame.parameters, aliases: frame.aliases },
     };
   }
 

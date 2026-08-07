@@ -7,6 +7,61 @@ export interface CallSite extends CalleeLink {
   /** Toạ độ analyzer: line 1-based, column 0-based. */
   line: number;
   column: number;
+  /** Source text của argument, cùng thứ tự với parameter callee. */
+  arguments: string[];
+}
+
+function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclaration {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isConstructorDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node)
+  );
+}
+
+/** Lấy parameter của đúng function đang được graph mô tả, không cần TypeChecker. */
+export function collectFunctionParameters(
+  filePath: string,
+  sourceText: string,
+  graph: FlowGraph,
+): string[] {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind(filePath),
+  );
+  const anchor =
+    graph.nodes.find((node) => node.kind === "entry") ??
+    [...graph.nodes].sort(
+      (left, right) =>
+        left.range.startLine - right.range.startLine || left.range.startCol - right.range.startCol,
+    )[0];
+  if (anchor === undefined) return [];
+  const target = positionOf(anchor.range, sourceFile).start;
+  let match: ts.FunctionLikeDeclaration | undefined;
+  const visit = (node: ts.Node): void => {
+    if (
+      isFunctionWithBody(node) &&
+      node.body !== undefined &&
+      target >= node.getStart(sourceFile) &&
+      target <= node.getEnd()
+    ) {
+      match = node;
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sourceFile, visit);
+  return (
+    match?.parameters.map((parameter) =>
+      ts.isIdentifier(parameter.name) ? parameter.name.text : parameter.name.getText(sourceFile),
+    ) ?? []
+  );
 }
 
 // Không có TypeChecker ở lớp này nên không thể chứng minh receiver là Array/String. Các tên
@@ -134,6 +189,7 @@ export function collectCallSites(
           label: callee.getText(sourceFile),
           line: position.line + 1,
           column: position.character,
+          arguments: node.arguments.map((argument) => argument.getText(sourceFile)),
         });
       }
     }

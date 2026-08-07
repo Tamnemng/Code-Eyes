@@ -278,6 +278,183 @@ body {
   cursor: grabbing;
 }
 
+.cf-trace-toggle-active {
+  border-color: var(--cf-accent-entry) !important;
+  color: var(--cf-accent-entry) !important;
+}
+
+/* ---------- guided data trace ---------- */
+
+.cf-trace-panel {
+  flex: 0 0 auto;
+  max-height: 52vh;
+  overflow: auto;
+  padding: 12px;
+  border-bottom: 1px solid var(--cf-line);
+  border-left: 3px solid var(--cf-accent-condition);
+  background: var(--cf-chrome-bg);
+}
+
+.cf-trace-panel[hidden] {
+  display: none;
+}
+
+.cf-trace-active {
+  border-left-color: var(--cf-accent-entry);
+}
+
+.cf-trace-header,
+.cf-trace-actions,
+.cf-trace-options,
+.cf-trace-runtime-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cf-trace-header {
+  justify-content: space-between;
+  color: var(--cf-fg-strong);
+}
+
+.cf-trace-help {
+  margin: 7px 0 10px;
+  color: var(--cf-muted);
+  font-size: var(--cf-text-sm);
+  line-height: 1.45;
+}
+
+.cf-trace-input-label {
+  display: grid;
+  gap: 5px;
+  color: var(--cf-fg-strong);
+  font-size: var(--cf-text-sm);
+}
+
+.cf-trace-input-label textarea,
+.cf-trace-runtime-row input {
+  width: 100%;
+  color: var(--vscode-input-foreground, var(--cf-fg));
+  background: var(--vscode-input-background, var(--cf-control-bg));
+  border: 1px solid var(--vscode-input-border, var(--cf-line-strong));
+  border-radius: 4px;
+  padding: 7px 8px;
+  font: var(--cf-text-sm)/1.45 var(--cf-font-mono);
+}
+
+.cf-trace-input-label textarea {
+  resize: vertical;
+  min-height: 78px;
+}
+
+.cf-trace-actions {
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.cf-trace-panel button {
+  color: var(--vscode-button-secondaryForeground, var(--cf-fg));
+  background: var(--cf-control-bg);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 4px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.cf-trace-panel button:hover:not(:disabled) {
+  border-color: var(--cf-focus);
+  background: var(--cf-control-hover-bg);
+}
+
+.cf-trace-panel button:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.cf-trace-panel button.cf-primary {
+  color: var(--vscode-button-foreground, var(--cf-fg-strong));
+  background: var(--vscode-button-background, var(--cf-focus));
+  border-color: var(--vscode-button-background, var(--cf-focus));
+}
+
+.cf-trace-error {
+  color: var(--cf-danger);
+  margin: 8px 0 0;
+}
+
+.cf-trace-result {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cf-trace-status {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--cf-line-strong);
+  border-left: 3px solid var(--cf-accent-entry);
+  border-radius: var(--cf-radius);
+  background: var(--cf-surface);
+}
+
+.cf-trace-status-awaiting {
+  border-left-color: var(--cf-accent-condition);
+}
+
+.cf-trace-status-thrown {
+  border-left-color: var(--cf-danger);
+}
+
+.cf-trace-status code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--cf-fg-strong);
+  font: var(--cf-text-sm)/1.5 var(--cf-font-mono);
+}
+
+.cf-trace-options {
+  flex-wrap: wrap;
+}
+
+.cf-trace-runtime-row input {
+  flex: 1 1 180px;
+}
+
+.cf-trace-mock-note {
+  color: var(--cf-accent-loop);
+}
+
+.cf-trace-trail {
+  margin: 2px 0 4px;
+  padding-left: 22px;
+  color: var(--cf-muted);
+  font: var(--cf-text-sm)/1.5 var(--cf-font-mono);
+}
+
+.cf-trace-values summary {
+  cursor: pointer;
+  color: var(--cf-muted);
+  font-size: var(--cf-text-sm);
+}
+
+.cf-trace-values dl {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(70px, 1fr);
+  gap: 3px 8px;
+  margin: 7px 0 0;
+  font: 10px/1.4 var(--cf-font-mono);
+}
+
+.cf-trace-values dt,
+.cf-trace-values dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.cf-trace-values dt { color: var(--cf-muted); }
+.cf-trace-values dd { color: var(--cf-fg-strong); }
+
 .cf-navigation {
   display: flex;
   align-items: center;
@@ -809,6 +986,75 @@ body {
   color: var(--cf-muted);
   font-size: var(--cf-text-sm);
   line-height: 1.4;
+}
+
+.cf-filter-mock-toggle {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: start;
+  gap: 9px;
+  padding: 8px;
+  border: 1px solid var(--cf-line);
+  border-radius: 5px;
+  background: var(--cf-control-bg);
+  cursor: pointer;
+}
+
+.cf-filter-mock-toggle input {
+  appearance: none;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  margin: 1px 0 0;
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 10px;
+  background: var(--cf-bg);
+}
+
+.cf-filter-mock-toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--cf-muted);
+  transition: transform 120ms ease;
+}
+
+.cf-filter-mock-toggle input:checked {
+  border-color: var(--cf-focus);
+  background: var(--cf-control-active-bg);
+}
+
+.cf-filter-mock-toggle input:checked::after {
+  transform: translateX(14px);
+  background: var(--cf-focus);
+}
+
+.cf-filter-mock-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cf-filter-mock-toggle small {
+  color: var(--cf-muted);
+  line-height: 1.35;
+}
+
+.cf-filter-section {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 7px 4px 4px;
+  color: var(--cf-focus);
+  background: var(--cf-chrome-bg);
+}
+
+.cf-filter-row-mock code {
+  color: var(--cf-fg-strong);
 }
 
 .cf-filter-rows {

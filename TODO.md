@@ -5,7 +5,38 @@ Không phải bug — mỗi mục nói rõ **chỗ sửa đúng nằm ở tầng
 
 ---
 
-## 1. `parentId` chỉ phủ try / catch / finally → collapse gần như vô dụng trên hàm lớn
+## 0. Guided trace là symbolic simulation, không phải JavaScript debugger thật
+
+Thêm ngày 2026-08-07 cho flow API → service legacy:
+
+- Người dùng dán JSON body; webview bind object đó vào parameter hiện tại (`body`, `data`, ...).
+- `filter/guidedTrace.ts` đi theo CFG thật, diễn giải một tập phép gán/destructure/điều kiện thuần và
+  chỉ vẽ đường đã xác định. Nó không `eval`, không chạy source, không gọi DB.
+- Giá trị query/runtime chưa biết làm trace dừng tại condition. Người dùng có thể nhập scalar cho
+  biến thiếu hoặc ép nhánh true/false; UI luôn gắn nhãn **MOCK**.
+- Host gửi parameter và alias argument → parameter bằng sidecar `shared/protocol.ts`; schema
+  `FlowGraph` trong `shared/types.ts` không đổi. Nhờ đó wrapper inline như
+  `received(body)` vẫn bind được `recevieDetail -> body`.
+- Return có callee cho phép đi tiếp bằng definition provider thật; state body/decision sống qua stack
+  navigation, nên có thể lần `receive → received → receivedNew`.
+- `Quay lại bước trước` hoàn tác câu trả lời/mock cuối trong frame hiện tại; khi frame không còn bước
+  nào để hoàn tác, nút quay về caller nhưng vẫn giữ JSON body và các quyết định trước đó.
+
+Giới hạn có chủ ý: interpreter không gọi getter/hàm người dùng và không biết giá trị enum khi source chỉ
+hiện member (`ETaskType.X`) nhưng JSON gửi số. Loop giữ chuỗi quyết định theo từng iteration; sau mỗi
+vòng nó hỏi lại "còn phần tử" hay "hết dữ liệu" để có thể đi tiếp xuống code bên dưới, thay vì tự đoán
+số phần tử runtime.
+
+---
+
+## 1. [ĐÃ GIẢI QUYẾT] `parentId` từng chỉ phủ try / catch / finally
+
+Giải quyết ngày 2026-08-07: analyzer hiện gắn `parentId` cho thân `if` và `loop`; auto-collapse
+giữ workflow ngoài cùng mở nhưng thu từng khối điều khiển bên trong. Đo lại trực tiếp trên
+`ReceiveService.actionReceivedNew`: **1059 node → 103 node nhìn thấy ban đầu**, 325 khối có thể
+mở dần. Topology và edge của CFG không đổi.
+
+Nội dung dưới đây là chẩn đoán trước khi sửa, giữ lại làm lịch sử quyết định.
 
 `analyzer/typescript/builder.ts` gán `parentId` luôn bằng `scope.regionId`, và `regionId`
 chỉ nhận đúng ba giá trị: `tryId` (builder.ts:864), `catchId` (builder.ts:876),

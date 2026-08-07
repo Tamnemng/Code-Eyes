@@ -31,6 +31,8 @@ describe("vòng lặp", () => {
     const loop = node(g, "loop");
     expect(loop.code).toContain("let i = 0");
     expect(loop.code).toContain("i < n");
+    expect(node(g, "statement:total += i").parentId).toBe(loop.id);
+    expect(node(g, "return:return total").parentId).toBeUndefined();
   });
 
   it("for-of", () => {
@@ -88,6 +90,7 @@ describe("vòng lặp", () => {
 
     const body = node(g, "statement:n -= 1");
     expect(body.code).toContain("steps += 1");
+    expect(body.parentId).toBe(node(g, "loop:while (n > 0)").id);
   });
 
   it("do-while: thân chạy TRƯỚC điều kiện, cạnh ngược là edge true của điều kiện", () => {
@@ -111,6 +114,8 @@ describe("vòng lặp", () => {
       backEdges: 1,
       warningCount: 0,
     });
+
+    expect(node(g, "statement:n -= 1").parentId).toBe(node(g, "loop:while (n > 0)").id);
   });
 
   it("while (true): không có edge false, chỉ thoát bằng break", () => {

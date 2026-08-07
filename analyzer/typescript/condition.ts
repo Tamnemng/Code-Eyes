@@ -112,6 +112,16 @@ function caseValue(expr: ts.Expression, sf: ts.SourceFile): string | undefined {
   return isVariableExpression(e) ? e.getText(sf) : undefined;
 }
 
+function literalValue(expr: ts.Expression): string | undefined {
+  const value = unwrapParens(expr);
+  if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) return value.text;
+  if (ts.isNumericLiteral(value)) return value.text;
+  if (value.kind === ts.SyntaxKind.TrueKeyword) return "true";
+  if (value.kind === ts.SyntaxKind.FalseKeyword) return "false";
+  if (value.kind === ts.SyntaxKind.NullKeyword) return "null";
+  return undefined;
+}
+
 function variableAndLiteral(
   left: ts.Expression,
   right: ts.Expression,
@@ -121,11 +131,13 @@ function variableAndLiteral(
   const r = unwrapParens(right);
   const leftVariable = filterVariableName(l, sf);
   const rightVariable = filterVariableName(r, sf);
-  if (ts.isStringLiteral(r) && leftVariable !== undefined) {
-    return { variable: leftVariable, value: r.text };
+  const rightLiteral = literalValue(r);
+  if (rightLiteral !== undefined && leftVariable !== undefined) {
+    return { variable: leftVariable, value: rightLiteral };
   }
-  if (ts.isStringLiteral(l) && rightVariable !== undefined) {
-    return { variable: rightVariable, value: l.text };
+  const leftLiteral = literalValue(l);
+  if (leftLiteral !== undefined && rightVariable !== undefined) {
+    return { variable: rightVariable, value: leftLiteral };
   }
   return undefined;
 }

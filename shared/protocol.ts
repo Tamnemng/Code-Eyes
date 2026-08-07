@@ -25,6 +25,14 @@ export interface CalleeLink {
   label: string;
 }
 
+/** Metadata phụ cho guided trace; không thay đổi schema FlowGraph đã khoá. */
+export interface FunctionTraceInfo {
+  /** Tên parameter theo source, dùng để bind JSON đầu vào (vd. `body`, `data`). */
+  parameters: string[];
+  /** Alias sinh khi host inline wrapper, vd. `recevieDetail -> body`. */
+  aliases: Record<string, string>;
+}
+
 /** Trạng thái stack điều hướng graph do host sở hữu. */
 export interface GraphNavigation {
   breadcrumbs: string[];
@@ -53,6 +61,7 @@ export type HostToWebview =
       callees: CalleeLink[];
       navigation: GraphNavigation;
       gitChanges: GitNodeChange[];
+      trace: FunctionTraceInfo;
     }
   | { type: "analyzeError"; code: AnalyzeErrorCode; message: string };
 

@@ -92,7 +92,7 @@ interface Scope {
   readonly exceptionTarget: string;
   /** Chỉ có giá trị khi `exceptionTarget` là một node finally. */
   readonly exceptionPending?: ExceptionPending;
-  /** parentId cho node con - node đánh dấu vùng try/catch/finally. */
+  /** parentId cho node con - vùng trình bày gần nhất (if/loop/try/catch/finally). */
   readonly regionId?: string;
   readonly insideFinally: boolean;
   /**
@@ -470,12 +470,17 @@ class GraphBuilder {
     const id = this.conditionNode(stmt.expression, scope);
     this.connect(incoming, id);
 
-    const thenSegment = this.buildBody(stmt.thenStatement, [{ from: id, label: "true" }], scope);
+    const branchScope: Scope = { ...scope, regionId: id };
+    const thenSegment = this.buildBody(
+      stmt.thenStatement,
+      [{ from: id, label: "true" }],
+      branchScope,
+    );
     const elseIncoming: OpenEnd[] = [{ from: id, label: "false" }];
     const elseOpen =
       stmt.elseStatement === undefined
         ? elseIncoming
-        : this.buildBody(stmt.elseStatement, elseIncoming, scope).open;
+        : this.buildBody(stmt.elseStatement, elseIncoming, branchScope).open;
 
     return { entry: id, open: [...thenSegment.open, ...elseOpen] };
   }
@@ -557,6 +562,7 @@ class GraphBuilder {
     const continueTarget: ContinueTarget = { nodeId: id, finallyDepth: depth };
     const inner: Scope = {
       ...scope,
+      regionId: id,
       breakTarget,
       continueTarget,
       labels: withLabels(scope.labels, labels, breakTarget, continueTarget),
@@ -596,6 +602,7 @@ class GraphBuilder {
     const continueTarget: ContinueTarget = { nodeId: id, finallyDepth: depth };
     const inner: Scope = {
       ...scope,
+      regionId: id,
       breakTarget,
       continueTarget,
       labels: withLabels(scope.labels, labels, breakTarget, continueTarget),

@@ -8,6 +8,9 @@ export interface UiMessages {
   filterTitle: string;
   filterHeading: string;
   filterHelp: string;
+  mockQueryLabel: string;
+  mockQueryHelp: string;
+  mockConditionAtLine: (line: number) => string;
   clear: string;
   applyFilter: string;
   settingsTitle: string;
@@ -40,6 +43,28 @@ export interface UiMessages {
     displayNodes: number,
     renderGuard: number,
   ) => string;
+  trace: {
+    open: string;
+    title: string;
+    help: string;
+    inputLabel: string;
+    start: string;
+    stop: string;
+    reset: string;
+    backStep: string;
+    invalidJson: string;
+    awaiting: string;
+    enterValue: (variable: string) => string;
+    useValue: string;
+    knownValues: string;
+    continueInto: (callee: string) => string;
+    returned: string;
+    thrown: string;
+    broken: string;
+    loop: string;
+    trail: string;
+    mocked: string;
+  };
   detail: {
     selectNode: string;
     missingNode: string;
@@ -66,6 +91,10 @@ const VI: UiMessages = {
   filterHeading: "Ràng buộc biến",
   filterHelp:
     "Chỉ liệt kê biến analyzer suy luận an toàn. Biến unknown vẫn có thể lọc một chiều.",
+  mockQueryLabel: "Mock query",
+  mockQueryHelp:
+    "Ép kết quả true/false của kiểm tra phụ thuộc DB/runtime. Không gọi DB và không chạy source code.",
+  mockConditionAtLine: (line) => `Mock kết quả điều kiện tại dòng ${line}`,
   clear: "Xoá",
   applyFilter: "Lọc",
   settingsTitle: "Tuỳ chỉnh hiển thị",
@@ -99,9 +128,30 @@ const VI: UiMessages = {
   warningCount: (count) => `${count} cảnh báo`,
   largeGraphWarning: (sourceNodes, sourceThreshold, displayNodes, renderGuard) =>
     `Graph lớn (${sourceNodes} node > ${sourceThreshold}, hoặc ` +
-    `${displayNodes} node vẽ > ${renderGuard}) - đã thu gọn về tầng ngoài cùng. ` +
-    "Lưu ý: collapse chỉ phủ try/catch/finally nên trên nhiều hàm nó không giúp gì " +
-    "(xem TODO.md mục 1).",
+    `${displayNodes} node vẽ > ${renderGuard}) - đã thu từng khối if/loop để đọc theo tầng.`,
+  trace: {
+    open: "Debug data theo flow",
+    title: "Debug giả lập theo dữ liệu",
+    help:
+      "Dán JSON body. Tool chỉ diễn giải phép gán/điều kiện an toàn, không chạy source và không gọi DB. Chỗ thiếu dữ liệu sẽ dừng để bạn mock.",
+    inputLabel: "JSON body đầu vào",
+    start: "Bắt đầu chạy",
+    stop: "Xem graph đầy đủ",
+    reset: "Chạy lại từ đầu",
+    backStep: "Quay lại bước trước",
+    invalidJson: "Body không phải JSON hợp lệ.",
+    awaiting: "Cần bạn quyết định tại đây",
+    enterValue: (variable) => `Nhập giá trị mock cho ${variable}`,
+    useValue: "Dùng giá trị này",
+    knownValues: "Dữ liệu tool đang biết",
+    continueInto: (callee) => `Đi tiếp vào ${callee} →`,
+    returned: "Kết thúc bằng return / hết hàm",
+    thrown: "Kết thúc bằng throw (lỗi)",
+    broken: "Dừng tại break",
+    loop: "Đường này quay lại loop với cùng dữ liệu mock",
+    trail: "Chuỗi function đã đi qua",
+    mocked: "MOCK — không phải dữ liệu DB thật",
+  },
   detail: {
     selectNode: "Chọn một node để xem code đầy đủ.",
     missingNode: "Node đã chọn không còn trong graph đang hiển thị.",
@@ -135,6 +185,10 @@ const EN: UiMessages = {
   filterHeading: "Variable constraints",
   filterHelp:
     "Only variables the analyzer can safely infer are listed. Unknown conditions may still support one-way filtering.",
+  mockQueryLabel: "Mock query",
+  mockQueryHelp:
+    "Force a DB/runtime-dependent check to true or false. This does not call the DB or execute source code.",
+  mockConditionAtLine: (line) => `Mock condition result at line ${line}`,
   clear: "Clear",
   applyFilter: "Filter",
   settingsTitle: "Display settings",
@@ -168,9 +222,30 @@ const EN: UiMessages = {
   warningCount: (count) => `${count} ${count === 1 ? "warning" : "warnings"}`,
   largeGraphWarning: (sourceNodes, sourceThreshold, displayNodes, renderGuard) =>
     `Large graph (${sourceNodes} nodes > ${sourceThreshold}, or ` +
-    `${displayNodes} rendered nodes > ${renderGuard}) - collapsed to the outermost level. ` +
-    "Note: collapse only covers try/catch/finally regions, so it may not help for many functions " +
-    "(see TODO.md item 1).",
+    `${displayNodes} rendered nodes > ${renderGuard}) - if/loop blocks were collapsed for progressive reading.`,
+  trace: {
+    open: "Debug data through flow",
+    title: "Guided data simulation",
+    help:
+      "Paste the JSON body. The tool only interprets safe assignments and conditions; it never executes source or calls the DB. Missing runtime data becomes a mock question.",
+    inputLabel: "Input JSON body",
+    start: "Start trace",
+    stop: "Show full graph",
+    reset: "Restart trace",
+    backStep: "Go back one step",
+    invalidJson: "The body is not valid JSON.",
+    awaiting: "Your decision is needed here",
+    enterValue: (variable) => `Enter a mock value for ${variable}`,
+    useValue: "Use this value",
+    knownValues: "Values currently known",
+    continueInto: (callee) => `Continue into ${callee} →`,
+    returned: "Finished by return / function exit",
+    thrown: "Finished by throw (error)",
+    broken: "Stopped at break",
+    loop: "This path repeats the loop with the same mock data",
+    trail: "Function chain visited",
+    mocked: "MOCK — not a real DB value",
+  },
   detail: {
     selectNode: "Select a node to view its full code.",
     missingNode: "The selected node is no longer present in the displayed graph.",

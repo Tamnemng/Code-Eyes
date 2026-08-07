@@ -12,10 +12,25 @@
 //   3. đổi độ dày cạnh / bảng màu              -> đổi CSS variable           (gần như free)
 // Trước đây mọi thứ đi đường 1: bấm chọn một node trên hàm 714 node = chạy lại ELK 6.4 giây.
 
-import type { CalleeLink, GitNodeChange, GraphNavigation } from "../shared/protocol";
+import type {
+  CalleeLink,
+  FunctionTraceInfo,
+  GitNodeChange,
+  GraphNavigation,
+} from "../shared/protocol";
 import type { FlowGraph } from "../shared/types";
 import { collectFilterCandidates, type FilterCandidate } from "../filter/candidates";
 import { filterGraph, filterStats } from "../filter/filterGraph";
+import {
+  runGuidedTrace,
+  type GuidedTraceResult,
+  type TraceDecision,
+  type TraceScalar,
+} from "../filter/guidedTrace";
+import {
+  collectQueryMockCandidates,
+  isQueryMockKey,
+} from "../filter/queryMocks";
 import { DEFAULT_DETAIL_WIDTH, detailWidthFromPointer } from "./detail-pane";
 import { messagesFor } from "./i18n";
 import type { Layout } from "./layout/run-elk";
@@ -37,7 +52,7 @@ import { renderGraph } from "./render/svg";
 import type { DisplaySettings, Locale, Palette } from "./settings";
 import { LIMITS, affectsLayout, clampSettings, defaultSettings } from "./settings";
 import type { ViewState } from "./state";
-import { graphKeyOf, initialState } from "./state";
+import { graphKeyOf, initialState, undoTraceAction } from "./state";
 
 export interface ViewOptions {
   /** Người dùng muốn nhảy tới node trong editor gốc. Nhận `sourceId`. */
@@ -54,6 +69,7 @@ export interface GraphContext {
   callees?: readonly CalleeLink[];
   navigation?: GraphNavigation;
   gitChanges?: readonly GitNodeChange[];
+  trace?: FunctionTraceInfo;
 }
 
 export interface View {
@@ -63,6 +79,7 @@ export interface View {
 
 interface FilterControl {
   candidate: FilterCandidate;
+  mockedCondition: boolean;
   enabled: HTMLInputElement;
   variableLabel: HTMLElement;
   value: HTMLInputElement;
@@ -84,6 +101,20 @@ function selectOption(select: HTMLSelectElement, value: string): HTMLOptionEleme
   option.value = value;
   select.append(option);
   return option;
+}
+
+function parseTraceScalar(raw: string): TraceScalar {
+  const trimmed = raw.trim();
+  if (trimmed === "") return "";
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (parsed === null || ["string", "number", "boolean"].includes(typeof parsed)) {
+      return parsed as TraceScalar;
+    }
+  } catch {
+    // Text thường như RECEIVED được xem là string; JSON object/array bị từ chối ở dưới.
+  }
+  return trimmed;
 }
 
 /** Một hàng slider trong bảng tuỳ chỉnh. */
@@ -160,6 +191,9 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   gitLegend.className = "cf-git-legend";
   gitLegend.title = "Git diff vs HEAD";
   gitLegend.hidden = true;
+  const traceToggle = button("▶", "cf-trace-toggle");
+  traceToggle.title = messages.trace.open;
+  traceToggle.setAttribute("aria-label", messages.trace.open);
   const filterBox = document.createElement("details");
   filterBox.className = "cf-filter";
   const filterSummary = document.createElement("summary");
@@ -176,6 +210,18 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   const filterHelp = document.createElement("p");
   filterHelp.className = "cf-filter-help";
   filterHelp.textContent = messages.filterHelp;
+  const mockQueryToggle = document.createElement("label");
+  mockQueryToggle.className = "cf-filter-mock-toggle";
+  const mockQueryCheckbox = document.createElement("input");
+  mockQueryCheckbox.type = "checkbox";
+  mockQueryCheckbox.setAttribute("role", "switch");
+  const mockQueryText = document.createElement("span");
+  const mockQueryLabel = document.createElement("strong");
+  mockQueryLabel.textContent = messages.mockQueryLabel;
+  const mockQueryHelp = document.createElement("small");
+  mockQueryHelp.textContent = messages.mockQueryHelp;
+  mockQueryText.append(mockQueryLabel, mockQueryHelp);
+  mockQueryToggle.append(mockQueryCheckbox, mockQueryText);
   const filterRows = document.createElement("div");
   filterRows.className = "cf-filter-rows";
   const filterActions = document.createElement("div");
@@ -183,7 +229,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   const clearFilterButton = button(messages.clear);
   const applyFilterButton = button(messages.applyFilter);
   filterActions.append(clearFilterButton, applyFilterButton);
-  filterBody.append(filterHeading, filterHelp, filterRows, filterActions);
+  filterBody.append(filterHeading, filterHelp, mockQueryToggle, filterRows, filterActions);
   filterBox.append(filterSummary, filterBody);
 
   const settingsBox = document.createElement("details");
@@ -202,11 +248,54 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     stats,
     filterReadout,
     gitLegend,
+    traceToggle,
     filterBox,
     settingsBox,
     expandButton,
     collapseButton,
     resetButton,
+  );
+
+  const tracePanel = document.createElement("section");
+  tracePanel.className = "cf-trace-panel";
+  tracePanel.hidden = true;
+  const traceHeader = document.createElement("div");
+  traceHeader.className = "cf-trace-header";
+  const traceHeading = document.createElement("strong");
+  traceHeading.textContent = messages.trace.title;
+  const traceClose = button("×", "cf-trace-close");
+  traceClose.title = messages.trace.stop;
+  traceHeader.append(traceHeading, traceClose);
+  const traceHelp = document.createElement("p");
+  traceHelp.className = "cf-trace-help";
+  traceHelp.textContent = messages.trace.help;
+  const traceInputLabel = document.createElement("label");
+  traceInputLabel.className = "cf-trace-input-label";
+  const traceInputName = document.createElement("span");
+  traceInputName.textContent = messages.trace.inputLabel;
+  const traceInput = document.createElement("textarea");
+  traceInput.rows = 7;
+  traceInput.spellcheck = false;
+  traceInputLabel.append(traceInputName, traceInput);
+  const traceActions = document.createElement("div");
+  traceActions.className = "cf-trace-actions";
+  const traceStart = button(messages.trace.start, "cf-primary");
+  const traceBack = button(`← ${messages.trace.backStep}`);
+  const traceReset = button(messages.trace.reset);
+  const traceStop = button(messages.trace.stop);
+  traceActions.append(traceStart, traceBack, traceReset, traceStop);
+  const traceError = document.createElement("p");
+  traceError.className = "cf-trace-error";
+  traceError.hidden = true;
+  const traceResult = document.createElement("div");
+  traceResult.className = "cf-trace-result";
+  tracePanel.append(
+    traceHeader,
+    traceHelp,
+    traceInputLabel,
+    traceActions,
+    traceError,
+    traceResult,
   );
 
   const warnings = document.createElement("details");
@@ -231,7 +320,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   detail.hidden = true;
   body.append(canvas, detailResizer, detail);
 
-  root.append(toolbar, warnings, body, navigation);
+  root.append(toolbar, tracePanel, warnings, body, navigation);
 
   let state: ViewState = options.restored ?? initialState();
   /** Graph sau fanout + back edge, TRƯỚC collapse. Nguồn để collapse lại. */
@@ -251,8 +340,15 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
   let openSuggestionControl: HTMLElement | undefined;
   let closeOpenSuggestions: (() => void) | undefined;
   let renderSourceGraph: (() => void) | undefined;
+  let traceGraphKey = "";
+  let traceCanNavigateBack = false;
+
+  mockQueryCheckbox.checked = state.mockQueryEnabled;
 
   const persist = (): void => options.onStateChange(state);
+
+  traceInput.value = state.trace.input;
+  tracePanel.hidden = !state.trace.active;
 
   const paintGitLegend = (): void => {
     const changes = [...gitChanges.values()];
@@ -456,7 +552,26 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     closeOpenSuggestions?.();
     filterRows.replaceChildren();
     filterControls = [];
-    const candidates = collectFilterCandidates(graph);
+    const regularCandidates = collectFilterCandidates(graph).map((candidate) => ({
+      candidate,
+      mockedCondition: false,
+      displayLabel: candidate.variable,
+      title: messages.candidateConfidence(candidate.certainNodes, candidate.unknownNodes),
+    }));
+    const queryCandidates = state.mockQueryEnabled
+      ? collectQueryMockCandidates(graph).map((mock) => ({
+          candidate: {
+            variable: mock.key,
+            values: ["false", "true"],
+            certainNodes: 1,
+            unknownNodes: 0,
+          },
+          mockedCondition: true,
+          displayLabel: mock.label,
+          title: messages.mockConditionAtLine(mock.line),
+        }))
+      : [];
+    const candidates = [...regularCandidates, ...queryCandidates];
     if (candidates.length === 0) {
       const empty = document.createElement("p");
       empty.className = "cf-filter-empty";
@@ -469,9 +584,17 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
 
     applyFilterButton.disabled = false;
     clearFilterButton.disabled = Object.keys(state.constraints).length === 0;
-    candidates.forEach((candidate) => {
+    let mockSectionAdded = false;
+    candidates.forEach(({ candidate, mockedCondition, displayLabel, title }) => {
+      if (mockedCondition && !mockSectionAdded) {
+        const section = document.createElement("strong");
+        section.className = "cf-filter-section";
+        section.textContent = messages.mockQueryLabel;
+        filterRows.append(section);
+        mockSectionAdded = true;
+      }
       const row = document.createElement("label");
-      row.className = "cf-filter-row";
+      row.className = mockedCondition ? "cf-filter-row cf-filter-row-mock" : "cf-filter-row";
       const enabled = document.createElement("input");
       enabled.type = "checkbox";
       const active = Object.prototype.hasOwnProperty.call(state.constraints, candidate.variable);
@@ -479,11 +602,8 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       enabled.setAttribute("aria-label", messages.enableConstraint(candidate.variable));
 
       const variable = document.createElement("code");
-      variable.textContent = candidate.variable;
-      variable.title = messages.candidateConfidence(
-        candidate.certainNodes,
-        candidate.unknownNodes,
-      );
+      variable.textContent = displayLabel;
+      variable.title = title;
 
       const value = document.createElement("input");
       value.type = "text";
@@ -575,10 +695,30 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
           value.disabled = false;
         }
       });
-      filterControls.push({ candidate, enabled, variableLabel: variable, value, suggestionToggle });
+      filterControls.push({
+        candidate,
+        mockedCondition,
+        enabled,
+        variableLabel: variable,
+        value,
+        suggestionToggle,
+      });
       filterRows.append(row);
     });
   };
+
+  mockQueryCheckbox.addEventListener("change", () => {
+    const enabled = mockQueryCheckbox.checked;
+    const constraints = enabled
+      ? state.constraints
+      : Object.fromEntries(
+          Object.entries(state.constraints).filter(([key]) => !isQueryMockKey(key)),
+        );
+    state = { ...state, mockQueryEnabled: enabled, constraints };
+    persist();
+    if (sourceGraph !== undefined) populateFilterControls(sourceGraph);
+    if (!enabled) renderSourceGraph?.();
+  });
 
   applyFilterButton.addEventListener("click", () => {
     const constraints: Record<string, string> = {};
@@ -691,10 +831,22 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     collapseButton.setAttribute("aria-label", messages.collapseDefault);
     resetButton.title = messages.resetView;
     resetButton.setAttribute("aria-label", messages.resetView);
+    traceToggle.title = messages.trace.open;
+    traceToggle.setAttribute("aria-label", messages.trace.open);
+    traceHeading.textContent = messages.trace.title;
+    traceClose.title = messages.trace.stop;
+    traceHelp.textContent = messages.trace.help;
+    traceInputName.textContent = messages.trace.inputLabel;
+    traceStart.textContent = messages.trace.start;
+    traceBack.textContent = `← ${messages.trace.backStep}`;
+    traceReset.textContent = messages.trace.reset;
+    traceStop.textContent = messages.trace.stop;
     filterSummary.title = messages.filterTitle;
     filterSummary.setAttribute("aria-label", messages.filterTitle);
     filterHeading.textContent = messages.filterHeading;
     filterHelp.textContent = messages.filterHelp;
+    mockQueryLabel.textContent = messages.mockQueryLabel;
+    mockQueryHelp.textContent = messages.mockQueryHelp;
     clearFilterButton.textContent = messages.clear;
     applyFilterButton.textContent = messages.applyFilter;
     settingsSummary.title = messages.settingsTitle;
@@ -720,10 +872,12 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
         "aria-label",
         messages.enableConstraint(control.candidate.variable),
       );
-      control.variableLabel.title = messages.candidateConfidence(
-        control.candidate.certainNodes,
-        control.candidate.unknownNodes,
-      );
+      if (!control.mockedCondition) {
+        control.variableLabel.title = messages.candidateConfidence(
+          control.candidate.certainNodes,
+          control.candidate.unknownNodes,
+        );
+      }
       control.value.placeholder = messages.filterPlaceholder(control.candidate.values.length);
       control.value.setAttribute("aria-label", messages.valueFor(control.candidate.variable));
       control.suggestionToggle?.setAttribute(
@@ -733,13 +887,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     }
 
     if (sourceGraph !== undefined) {
-      const filtered = filterGraph(sourceGraph, state.constraints);
-      const summary = filterStats(sourceGraph, filtered);
-      if (Object.keys(state.constraints).length > 0) {
-        filterReadout.textContent = messages.hiddenNodes(summary.hidden, summary.total);
-      }
-      renderWarnings(filtered);
-      renderGraphView(false);
+      renderSourceGraph?.();
     }
   };
 
@@ -805,6 +953,251 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     renderGraphView(false);
   });
 
+  const setTraceDecision = (graphKey: string, nodeId: string, decision: TraceDecision): void => {
+    const existing = state.trace.decisions[graphKey]?.[nodeId];
+    let stored = decision;
+    if (decision.kind === "branch" && existing?.kind === "branch") {
+      stored = { kind: "branches", outcomes: [existing.outcome, decision.outcome] };
+    } else if (decision.kind === "branch" && existing?.kind === "branches") {
+      stored = { kind: "branches", outcomes: [...existing.outcomes, decision.outcome] };
+    }
+    state = {
+      ...state,
+      trace: {
+        ...state.trace,
+        decisions: {
+          ...state.trace.decisions,
+          [graphKey]: { ...state.trace.decisions[graphKey], [nodeId]: stored },
+        },
+        actions: [...state.trace.actions, { graphKey, kind: "decision", nodeId }],
+      },
+    };
+    persist();
+    renderSourceGraph?.();
+  };
+
+  const paintTraceResult = (
+    result: GuidedTraceResult | undefined,
+    graph: FlowGraph,
+    graphKey: string,
+  ): void => {
+    traceResult.replaceChildren();
+    tracePanel.classList.toggle("cf-trace-active", state.trace.active);
+    traceToggle.classList.toggle("cf-trace-toggle-active", state.trace.active);
+    traceStart.disabled = state.trace.active;
+    traceBack.disabled =
+      !state.trace.active ||
+      (!state.trace.actions.some((action) => action.graphKey === graphKey) &&
+        !traceCanNavigateBack);
+    traceReset.disabled = !state.trace.active;
+    traceStop.disabled = !state.trace.active;
+    if (!state.trace.active || result === undefined) return;
+
+    if (state.trace.trail.length > 0) {
+      const trailTitle = document.createElement("strong");
+      trailTitle.textContent = messages.trace.trail;
+      const trail = document.createElement("ol");
+      trail.className = "cf-trace-trail";
+      for (const item of state.trace.trail) {
+        const row = document.createElement("li");
+        row.textContent = `${item.functionName}: ${item.summary}`;
+        trail.append(row);
+      }
+      traceResult.append(trailTitle, trail);
+    }
+
+    const status = document.createElement("div");
+    status.className = `cf-trace-status cf-trace-status-${result.status}`;
+    if (result.status === "awaiting" && result.question !== undefined) {
+      const badge = document.createElement("strong");
+      badge.textContent = messages.trace.awaiting;
+      const location = document.createElement("span");
+      location.textContent = ` · ${graph.functionName}:${result.question.line}`;
+      const code = document.createElement("code");
+      code.textContent = result.question.code;
+      status.append(badge, location, code);
+
+      if (result.question.variable !== undefined) {
+        const runtimeRow = document.createElement("div");
+        runtimeRow.className = "cf-trace-runtime-row";
+        const runtimeInput = document.createElement("input");
+        runtimeInput.type = "text";
+        runtimeInput.placeholder = messages.trace.enterValue(result.question.variable);
+        runtimeInput.setAttribute(
+          "aria-label",
+          messages.trace.enterValue(result.question.variable),
+        );
+        const runtimeButton = button(messages.trace.useValue, "cf-primary");
+        const applyRuntimeValue = (): void => {
+          const variable = result.question?.variable;
+          if (variable === undefined) return;
+          const frameValues = state.trace.runtimeValues[graphKey] ?? {};
+          const hadPrevious = Object.prototype.hasOwnProperty.call(frameValues, variable);
+          const previous = frameValues[variable];
+          state = {
+            ...state,
+            trace: {
+              ...state.trace,
+              runtimeValues: {
+                ...state.trace.runtimeValues,
+                [graphKey]: {
+                  ...state.trace.runtimeValues[graphKey],
+                  [variable]: parseTraceScalar(runtimeInput.value),
+                },
+              },
+              actions: [
+                ...state.trace.actions,
+                {
+                  graphKey,
+                  kind: "runtime",
+                  variable,
+                  hadPrevious,
+                  ...(hadPrevious ? { previous } : {}),
+                },
+              ],
+            },
+          };
+          persist();
+          renderSourceGraph?.();
+        };
+        runtimeButton.addEventListener("click", applyRuntimeValue);
+        runtimeInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") applyRuntimeValue();
+        });
+        runtimeRow.append(runtimeInput, runtimeButton);
+        status.append(runtimeRow);
+      }
+
+      const optionsRow = document.createElement("div");
+      optionsRow.className = "cf-trace-options";
+      for (const option of result.question.options) {
+        const choice = button(option.label);
+        choice.addEventListener("click", () => {
+          const decision: TraceDecision =
+            result.question?.kind === "condition"
+              ? { kind: "branch", outcome: option.id === "true" ? "true" : "false" }
+              : { kind: "edge", targetId: option.targetId ?? option.id };
+          setTraceDecision(graphKey, result.question?.nodeId ?? "", decision);
+        });
+        optionsRow.append(choice);
+      }
+      const mockNote = document.createElement("small");
+      mockNote.className = "cf-trace-mock-note";
+      mockNote.textContent = messages.trace.mocked;
+      status.append(optionsRow, mockNote);
+    } else if (result.status === "callee" && result.calleeNodeId !== undefined) {
+      const callees = calleeLinks.filter((callee) => callee.nodeId === result.calleeNodeId);
+      const callee = callees[callees.length - 1];
+      if (callee !== undefined) {
+        const explanation = document.createElement("p");
+        explanation.textContent = result.terminal?.code ?? result.terminal?.label ?? "";
+        const continueButton = button(messages.trace.continueInto(callee.label), "cf-primary");
+        continueButton.addEventListener("click", () => {
+          const trail = [
+            ...state.trace.trail.filter((item) => item.graphKey !== graphKey),
+            {
+              graphKey,
+              functionName: graph.functionName,
+              summary: `return → ${callee.label}`,
+            },
+          ];
+          state = { ...state, trace: { ...state.trace, trail } };
+          persist();
+          options.onOpenCallee(callee.targetId);
+        });
+        status.append(explanation, continueButton);
+      }
+    } else {
+      let label = messages.trace.returned;
+      if (result.status === "thrown") label = messages.trace.thrown;
+      else if (result.status === "broken") label = messages.trace.broken;
+      else if (result.status === "loop") label = messages.trace.loop;
+      status.textContent = label;
+      if (result.terminal !== undefined) {
+        const code = document.createElement("code");
+        code.textContent = result.terminal.code || result.terminal.label;
+        status.append(code);
+      }
+    }
+    traceResult.append(status);
+
+    const values = Object.entries(result.values).slice(-24);
+    if (values.length > 0) {
+      const known = document.createElement("details");
+      known.className = "cf-trace-values";
+      const summary = document.createElement("summary");
+      summary.textContent = `${messages.trace.knownValues} (${Object.keys(result.values).length})`;
+      const list = document.createElement("dl");
+      for (const [name, value] of values) {
+        const key = document.createElement("dt");
+        key.textContent = name;
+        const rendered = document.createElement("dd");
+        rendered.textContent = JSON.stringify(value);
+        list.append(key, rendered);
+      }
+      known.append(summary, list);
+      traceResult.append(known);
+    }
+  };
+
+  traceToggle.addEventListener("click", () => {
+    tracePanel.hidden = !tracePanel.hidden;
+    if (!tracePanel.hidden) traceInput.focus();
+  });
+  traceClose.addEventListener("click", () => {
+    tracePanel.hidden = true;
+  });
+  traceInput.addEventListener("input", () => {
+    state = { ...state, trace: { ...state.trace, input: traceInput.value } };
+    persist();
+  });
+  traceBack.addEventListener("click", () => {
+    const undone = undoTraceAction(state.trace, traceGraphKey);
+    if (undone !== undefined) {
+      state = { ...state, trace: undone };
+      persist();
+      renderSourceGraph?.();
+      return;
+    }
+    if (!traceCanNavigateBack) return;
+    state = {
+      ...state,
+      trace: { ...state.trace, trail: state.trace.trail.slice(0, -1) },
+    };
+    persist();
+    options.onNavigateBack();
+  });
+  const startTrace = (): void => {
+    try {
+      JSON.parse(traceInput.value);
+    } catch {
+      traceError.textContent = messages.trace.invalidJson;
+      traceError.hidden = false;
+      return;
+    }
+    traceError.hidden = true;
+    state = {
+      ...state,
+      trace: {
+        active: true,
+        input: traceInput.value,
+        decisions: {},
+        runtimeValues: {},
+        trail: [],
+        actions: [],
+      },
+    };
+    persist();
+    renderSourceGraph?.();
+  };
+  traceStart.addEventListener("click", startTrace);
+  traceReset.addEventListener("click", startTrace);
+  traceStop.addEventListener("click", () => {
+    state = { ...state, trace: { ...state.trace, active: false } };
+    persist();
+    renderSourceGraph?.();
+  });
+
   const renderWarnings = (filtered: FlowGraph): void => {
     warnings.replaceChildren();
     const notes = [...filtered.warnings];
@@ -846,16 +1239,20 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       breadcrumbs: [next.functionName],
       canGoBack: false,
     };
+    traceGraphKey = graphKeyOf(next.filePath, next.functionName);
+    traceCanNavigateBack = graphNavigation.canGoBack;
     backButton.hidden = !graphNavigation.canGoBack;
     breadcrumbs.textContent = graphNavigation.breadcrumbs.join(" → ");
 
-    const key = graphKeyOf(next.filePath, next.functionName);
+    const key = traceGraphKey;
     const sameGraph = state.graphKey === key;
     if (!sameGraph) {
+      const trace = state.trace;
       state = {
         ...initialState(),
         graphKey: key,
         settings: state.settings,
+        trace,
       };
     }
 
@@ -868,29 +1265,55 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
     // Constraint persistence có thể đến từ source cũ cùng graphKey. Chỉ giữ biến analyzer
     // hiện vẫn công bố; không giữ key mồ côi sống lại trên source khác.
     const candidates = collectFilterCandidates(next);
-    const knownVariables = new Set(candidates.map((candidate) => candidate.variable));
+    const knownVariables = new Set([
+      ...candidates.map((candidate) => candidate.variable),
+      ...collectQueryMockCandidates(next).map((candidate) => candidate.key),
+    ]);
     const constraints = Object.fromEntries(
       Object.entries(state.constraints).filter(([variable]) => knownVariables.has(variable)),
     );
     state = { ...state, constraints };
 
     const filtered = filterGraph(next, state.constraints);
-    const display = toDisplayGraph(filtered);
+    let displayedGraph = filtered;
+    let guided: GuidedTraceResult | undefined;
+    if (state.trace.active) {
+      try {
+        const bodyValue: unknown = JSON.parse(state.trace.input);
+        guided = runGuidedTrace({
+          graph: next,
+          parameters: context?.trace?.parameters ?? [],
+          aliases: context?.trace?.aliases,
+          body: bodyValue,
+          decisions: state.trace.decisions[key],
+          runtimeValues: state.trace.runtimeValues[key],
+          terminalCalleeNodeIds: new Set(calleeLinks.map((callee) => callee.nodeId)),
+        });
+        displayedGraph = guided.graph;
+        traceError.hidden = true;
+      } catch {
+        traceError.textContent = messages.trace.invalidJson;
+        traceError.hidden = false;
+      }
+    }
+    const display = toDisplayGraph(displayedGraph);
     base = markBackEdges(FANOUT_ENABLED ? fanoutFinallyRegions(display) : display);
     if (!sameGraph) state = { ...state, collapsedIds: initialCollapsedIds(base) };
 
     const summary = filterStats(next, filtered);
     const hasConstraints = Object.keys(state.constraints).length > 0;
-    filterReadout.hidden = !hasConstraints;
+    filterReadout.hidden = state.trace.active || !hasConstraints;
     filterReadout.textContent = messages.hiddenNodes(summary.hidden, summary.total);
     filterBox.classList.toggle("cf-filter-active", hasConstraints);
     populateFilterControls(next);
+    mockQueryCheckbox.checked = state.mockQueryEnabled;
+    paintTraceResult(guided, next, key);
 
     persist();
     cachedLayout = undefined;
     cachedKey = "";
 
-    renderWarnings(filtered);
+    renderWarnings(displayedGraph);
 
     renderGraphView(true);
   };
@@ -917,6 +1340,7 @@ export function createView(root: HTMLElement, options: ViewOptions): View {
       filterBox.open = false;
       filterBox.classList.remove("cf-filter-active");
       filterRows.replaceChildren();
+      mockQueryCheckbox.checked = false;
       warnings.hidden = true;
       surface.replaceChildren();
       detail.replaceChildren();

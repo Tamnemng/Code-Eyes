@@ -87,7 +87,8 @@
           "operator": "==",
           "value": "skip"
         }
-      }
+      },
+      "parentId": "n_5"
     },
     {
       "id": "n_7",
@@ -100,7 +101,8 @@
         "endLine": 22,
         "endCol": 15
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_6"
     },
     {
       "id": "n_8",
@@ -121,7 +123,8 @@
           "operator": "==",
           "value": "stop"
         }
-      }
+      },
+      "parentId": "n_5"
     },
     {
       "id": "n_9",
@@ -134,7 +137,8 @@
         "endLine": 25,
         "endCol": 12
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_8"
     },
     {
       "id": "n_10",
@@ -150,7 +154,8 @@
       "confidence": "certain",
       "condition": {
         "raw": "mode"
-      }
+      },
+      "parentId": "n_5"
     },
     {
       "id": "n_11",
@@ -171,7 +176,8 @@
           "operator": "==",
           "value": "fast"
         }
-      }
+      },
+      "parentId": "n_5"
     },
     {
       "id": "n_12",
@@ -184,7 +190,8 @@
         "endLine": 29,
         "endCol": 28
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_5"
     },
     {
       "id": "n_13",
@@ -197,7 +204,8 @@
         "endLine": 30,
         "endCol": 14
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_5"
     },
     {
       "id": "n_14",
@@ -213,7 +221,8 @@
       "confidence": "certain",
       "condition": {
         "raw": "default"
-      }
+      },
+      "parentId": "n_5"
     },
     {
       "id": "n_15",
@@ -226,7 +235,8 @@
         "endLine": 32,
         "endCol": 29
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_5"
     },
     {
       "id": "n_16",
@@ -239,7 +249,8 @@
         "endLine": 40,
         "endCol": 5
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_5"
     },
     {
       "id": "n_17",
@@ -252,7 +263,8 @@
         "endLine": 38,
         "endCol": 5
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_5"
     },
     {
       "id": "n_18",
@@ -265,7 +277,8 @@
         "endLine": 40,
         "endCol": 5
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_5"
     },
     {
       "id": "n_19",

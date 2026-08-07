@@ -4,6 +4,7 @@
 // filter phải chạy trên FlowGraph gốc, trước mọi biến đổi trình bày (fanout/collapse).
 
 import type { FlowEdge, FlowGraph, FlowNode, ParsedCondition } from "../shared/types";
+import { queryMockKey } from "./queryMocks";
 
 export type Constraints = Readonly<Record<string, string>>;
 
@@ -74,6 +75,12 @@ function markConditionEdges(
   deadEdges: Set<number>,
 ): boolean {
   if (node.kind !== "condition") return false;
+  const mocked = constraints[queryMockKey(node.id)];
+  if (mocked === "true" || mocked === "false") {
+    const deadLabel = mocked === "true" ? "false" : "true";
+    for (const [index, edge] of edges) if (edge.label === deadLabel) deadEdges.add(index);
+    return true;
+  }
   const primary = node.condition?.parsed;
   const parsedItems =
     node.condition?.parsedConjuncts ?? (primary === undefined ? [] : [primary]);

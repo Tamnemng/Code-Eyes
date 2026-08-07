@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { FlowGraph } from "../../shared/types";
-import { collectCallSites } from "../call-sites";
+import { collectCallSites, collectFunctionParameters } from "../call-sites";
 import { selectAutoInlineCallSite } from "../inline-graph";
 
 const source = `class Controller {
@@ -42,6 +42,9 @@ const graph: FlowGraph = {
 };
 
 describe("collectCallSites", () => {
+  it("lấy parameter của đúng method chứa graph", () => {
+    expect(collectFunctionParameters("controller.ts", source, graph)).toEqual(["body"]);
+  });
   it("gắn method cross-file vào đúng return node và giữ cột của tên method", () => {
     const sites = collectCallSites("controller.ts", source, graph);
     expect(sites).toContainEqual({
@@ -50,6 +53,7 @@ describe("collectCallSites", () => {
       label: "receiveByExternReceipt",
       line: 4,
       column: 33,
+      arguments: ["body"],
     });
   });
 

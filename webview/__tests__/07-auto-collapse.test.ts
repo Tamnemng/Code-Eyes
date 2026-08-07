@@ -64,6 +64,40 @@ function syntheticGraph(roots: number, childrenPer: number, copiesPerNode = 1): 
   return { functionName: "synthetic", filePath: "synthetic.ts", nodes, edges, warnings: [] };
 }
 
+function nestedBusinessGraph(branches: number, statementsPerBranch: number): DisplayGraph {
+  const nodes: DisplayNode[] = [];
+  const edges: DisplayGraph["edges"] = [];
+  const make = (id: string, kind: FlowNode["kind"], parentId?: string): DisplayNode => ({
+    id,
+    sourceId: id,
+    displayLabel: id,
+    parentDisplayId: parentId,
+    node: {
+      id,
+      kind,
+      label: id,
+      code: id,
+      range: { startLine: 1, startCol: 0, endLine: 1, endCol: 1 },
+      confidence: "certain",
+      ...(parentId === undefined ? {} : { parentId }),
+    },
+  });
+  nodes.push(make("entry", "entry"), make("workflow", "try"), make("exit", "exit"));
+  edges.push({ from: "entry", to: "workflow", label: null, isBackEdge: false });
+  for (let branch = 0; branch < branches; branch += 1) {
+    const conditionId = `condition_${branch}`;
+    nodes.push(make(conditionId, "condition", "workflow"));
+    edges.push({ from: "workflow", to: conditionId, label: null, isBackEdge: false });
+    for (let statement = 0; statement < statementsPerBranch; statement += 1) {
+      const statementId = `${conditionId}_statement_${statement}`;
+      nodes.push(make(statementId, "statement", conditionId));
+      edges.push({ from: conditionId, to: statementId, label: "true", isBackEdge: false });
+      edges.push({ from: statementId, to: "exit", label: null, isBackEdge: false });
+    }
+  }
+  return { functionName: "business", filePath: "business.ts", nodes, edges, warnings: [] };
+}
+
 describe("initialCollapsedIds - vùng finally luôn collapse (quyết định C)", () => {
   it("graph nhỏ: chỉ vùng finally bị collapse, không gì khác", () => {
     const graph = plain("b-nested-regions-pipeline");
@@ -130,6 +164,18 @@ describe("initialCollapsedIds - hai ngưỡng", () => {
     expect(graph.nodes.length).toBeGreaterThan(RENDER_GUARD);
 
     expect(initialCollapsedIds(graph).size).toBeGreaterThan(0);
+  });
+
+  it("graph nghiệp vụ lớn mở khung ngoài nhưng thu từng if để đọc theo tầng", () => {
+    const graph = nestedBusinessGraph(80, 4); // 403 nodes
+    const collapsed = initialCollapsedIds(graph);
+    const view = applyCollapse(graph, collapsed);
+
+    expect(collapsed.has("workflow")).toBe(false);
+    expect(collapsed.has("condition_0")).toBe(true);
+    expect(view.graph.nodes.some((node) => node.id === "workflow")).toBe(true);
+    expect(view.graph.nodes.some((node) => node.id === "condition_0_statement_0")).toBe(false);
+    expect(view.graph.nodes.length).toBeLessThan(USER_THRESHOLD);
   });
 
   it("node tầng ngoài cùng KHÔNG có con thì không collapse - badge 0 là vô nghĩa", () => {

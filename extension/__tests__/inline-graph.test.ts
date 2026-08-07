@@ -87,6 +87,7 @@ describe("selectAutoInlineCallSite", () => {
         label: "withDeadlockRetry",
         line: 3,
         column: 9,
+        arguments: [],
       },
       {
         targetId: "n_return:call:1",
@@ -94,6 +95,7 @@ describe("selectAutoInlineCallSite", () => {
         label: "received",
         line: 3,
         column: 45,
+        arguments: [],
       },
       {
         targetId: "n_catch:call:2",
@@ -101,6 +103,7 @@ describe("selectAutoInlineCallSite", () => {
         label: "sendSlackDefault",
         line: 5,
         column: 4,
+        arguments: [],
       },
     ];
 

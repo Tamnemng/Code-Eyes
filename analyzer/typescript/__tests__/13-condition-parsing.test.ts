@@ -195,6 +195,20 @@ describe("&& / || trong biểu thức điều kiện", () => {
     expect(cond.confidence).toBe("certain");
   });
 
+  it("parses numeric DB-result fields so query-derived checks can be constrained", () => {
+    const g = analyzeFixture(FILE, "queryResultChecks");
+    expect(node(g, "condition:receipt?.orderclose === 1").condition?.parsed).toEqual({
+      variable: "receipt.orderclose",
+      operator: "==",
+      value: "1",
+    });
+    expect(node(g, "condition:rows.length === 0").condition?.parsed).toEqual({
+      variable: "rows.length",
+      operator: "==",
+      value: "0",
+    });
+  });
+
   it("parses enum cases for a switch over a DTO property", () => {
     const g = analyzeFixture(FILE, "routeTask");
     const caseLpn = node(g, "switch-case:case ETaskType.RECEIVE_BY_LPN");

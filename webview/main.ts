@@ -5,6 +5,7 @@ import "./styles.css";
 import type {
   AnalyzeErrorCode,
   CalleeLink,
+  FunctionTraceInfo,
   GitNodeChange,
   GraphNavigation,
   HostToWebview,
@@ -93,6 +94,22 @@ function parseGitChanges(value: unknown): GitNodeChange[] | undefined {
   return result;
 }
 
+function parseTraceInfo(value: unknown): FunctionTraceInfo | undefined {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value["parameters"]) ||
+    !value["parameters"].every((item) => typeof item === "string") ||
+    !isRecord(value["aliases"]) ||
+    !Object.values(value["aliases"]).every((item) => typeof item === "string")
+  ) {
+    return undefined;
+  }
+  return {
+    parameters: value["parameters"] as string[],
+    aliases: value["aliases"] as Record<string, string>,
+  };
+}
+
 /** `event.data` là unknown thật sự; chỉ graph do analyzer sinh được tin sau khi kiểm envelope. */
 function parseMessage(data: unknown): HostToWebview | undefined {
   if (!isRecord(data)) return undefined;
@@ -100,7 +117,13 @@ function parseMessage(data: unknown): HostToWebview | undefined {
     const callees = parseCallees(data["callees"]);
     const navigation = parseNavigation(data["navigation"]);
     const gitChanges = parseGitChanges(data["gitChanges"]);
-    if (callees === undefined || navigation === undefined || gitChanges === undefined) {
+    const trace = parseTraceInfo(data["trace"]);
+    if (
+      callees === undefined ||
+      navigation === undefined ||
+      gitChanges === undefined ||
+      trace === undefined
+    ) {
       return undefined;
     }
     return {
@@ -109,6 +132,7 @@ function parseMessage(data: unknown): HostToWebview | undefined {
       callees,
       navigation,
       gitChanges,
+      trace,
     };
   }
   if (data["type"] === "analyzeError") {
@@ -142,6 +166,7 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
       callees: message.callees,
       navigation: message.navigation,
       gitChanges: message.gitChanges,
+      trace: message.trace,
     });
   } else {
     view.showError(message.message);

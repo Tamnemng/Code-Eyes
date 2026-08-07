@@ -61,7 +61,8 @@
           "operator": "==",
           "value": "A"
         }
-      }
+      },
+      "parentId": "n_3"
     },
     {
       "id": "n_5",
@@ -74,7 +75,8 @@
         "endLine": 88,
         "endCol": 16
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_4"
     },
     {
       "id": "n_6",
@@ -87,7 +89,8 @@
         "endLine": 90,
         "endCol": 20
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_4"
     },
     {
       "id": "n_7",
@@ -103,7 +106,8 @@
       "confidence": "unknown",
       "condition": {
         "raw": "guard()"
-      }
+      },
+      "parentId": "n_3"
     },
     {
       "id": "n_8",
@@ -116,7 +120,8 @@
         "endLine": 92,
         "endCol": 23
       },
-      "confidence": "certain"
+      "confidence": "certain",
+      "parentId": "n_7"
     },
     {
       "id": "n_9",

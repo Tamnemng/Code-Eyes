@@ -8,6 +8,7 @@ import {
   initialState,
   restoreState,
   serializeState,
+  undoTraceAction,
 } from "../state";
 
 describe("clampScale", () => {
@@ -32,6 +33,13 @@ describe("serializeState / restoreState - round-trip", () => {
     state.selectedSourceId = "n_12";
     state.transform = { x: -40, y: 15, scale: 2 };
     state.constraints = { clientCode: "NUTRICARE", region: "EU" };
+    state.mockQueryEnabled = true;
+    state.trace.active = true;
+    state.trace.input = '{"id":"R1"}';
+    state.trace.decisions["/src/a.ts#Svc.route"] = {
+      n_20: { kind: "branch", outcome: "false" },
+    };
+    state.trace.runtimeValues["/src/a.ts#Svc.route"] = { "receipt.orderclose": 0 };
     state.settings.locale = "en";
 
     const restored = restoreState(JSON.parse(JSON.stringify(serializeState(state))));
@@ -40,6 +48,8 @@ describe("serializeState / restoreState - round-trip", () => {
     expect(restored.selectedSourceId).toBe("n_12");
     expect(restored.transform).toEqual({ x: -40, y: 15, scale: 2 });
     expect(restored.constraints).toEqual({ clientCode: "NUTRICARE", region: "EU" });
+    expect(restored.mockQueryEnabled).toBe(true);
+    expect(restored.trace).toEqual(state.trace);
     expect(restored.settings.locale).toBe("en");
   });
 
@@ -111,6 +121,12 @@ describe("restoreState - dữ liệu KHÔNG tin được", () => {
     ).toEqual({ clientCode: "NUTRICARE" });
   });
 
+  it("mockQueryEnabled chỉ nhận boolean, bản cũ mặc định tắt", () => {
+    expect(restoreState({ mockQueryEnabled: true }).mockQueryEnabled).toBe(true);
+    expect(restoreState({ mockQueryEnabled: "true" }).mockQueryEnabled).toBe(false);
+    expect(restoreState({}).mockQueryEnabled).toBe(false);
+  });
+
   it("schema của bản webview cũ (field lạ) -> không crash, lấy được phần hiểu được", () => {
     const restored = restoreState({
       version: 0,
@@ -120,5 +136,39 @@ describe("restoreState - dữ liệu KHÔNG tin được", () => {
     });
     expect(restored.collapsedIds).toEqual(new Set(["n_5"]));
     expect(restored.transform).toEqual({ x: 1, y: 2, scale: 1.25 });
+  });
+});
+
+describe("undoTraceAction", () => {
+  it("lùi một iteration của loop mà vẫn giữ quyết định vòng trước", () => {
+    const trace = initialState().trace;
+    trace.decisions.demo = {
+      n_loop: { kind: "branches", outcomes: ["true", "false"] },
+    };
+    trace.actions = [
+      { graphKey: "demo", kind: "decision", nodeId: "n_loop" },
+      { graphKey: "demo", kind: "decision", nodeId: "n_loop" },
+    ];
+    const undone = undoTraceAction(trace, "demo");
+    expect(undone?.decisions.demo?.n_loop).toEqual({ kind: "branch", outcome: "true" });
+    expect(undone?.actions).toHaveLength(1);
+  });
+
+  it("khôi phục giá trị runtime trước đó; không có action của frame thì trả undefined", () => {
+    const trace = initialState().trace;
+    trace.runtimeValues.demo = { "receipt.status": 5 };
+    trace.actions = [
+      {
+        graphKey: "demo",
+        kind: "runtime",
+        variable: "receipt.status",
+        hadPrevious: true,
+        previous: 0,
+      },
+    ];
+    expect(undoTraceAction(trace, "demo")?.runtimeValues.demo).toEqual({
+      "receipt.status": 0,
+    });
+    expect(undoTraceAction(trace, "other")).toBeUndefined();
   });
 });

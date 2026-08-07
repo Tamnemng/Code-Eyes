@@ -161,6 +161,16 @@ khả năng đạt tới (reachability) từ case đã chọn. Fixture `resolveC
 Node đánh dấu vùng: `try`, `catch`, `finally`. Statement bên trong là node riêng
 (`parentId` trỏ về node đánh dấu tương ứng).
 
+`parentId` đồng thời mô tả **cấu trúc trình bày** của các khối điều khiển để graph lớn có thể
+mở dần theo từng tầng mà không đổi topology điều khiển:
+
+- node trong thân `if`/`else` trỏ về node `condition` của `if` đó;
+- node trong thân vòng lặp trỏ về node `loop`;
+- cấu trúc lồng nhau luôn trỏ về node điều khiển gần nhất; bản thân node điều khiển vẫn trỏ về
+  vùng bao ngoài (`if`, `loop`, hoặc `try/catch/finally`).
+
+Quan hệ này chỉ dùng cho collapse/render. Nó KHÔNG thêm, xoá hoặc đổi nhãn edge của CFG.
+
 - `label`/`code`: `try` → label `try`, code = source toàn bộ statement `try`.
   `catch` → label `catch (<param>)`, code = source của clause catch.
   `finally` → label `finally`, code = source của clause finally.
@@ -281,12 +291,13 @@ nhưng `confidence` của node `condition` luôn do §12 quyết định.
 đến đâu". Một node **được phép** vừa có `parsed` vừa `confidence: "unknown"`: đó là
 **kết luận một chiều**.
 
-### Dạng parse được (literal là string literal, ở vế nào cũng được)
+### Dạng parse được (literal là string/number/boolean/null, ở vế nào cũng được)
 
 | Nguồn | parsed |
 | --- | --- |
 | `x === "A"` / `x == "A"` / `"A" === x` | `{ variable: "x", operator: "==", value: "A" }` |
 | `x !== "A"` / `x != "A"` | `{ variable: "x", operator: "!=", value: "A" }` |
+| `rows.length === 0` / `flag === true` / `value === null` | literal được chuẩn hoá thành chuỗi `"0"` / `"true"` / `"null"` |
 | `x.startsWith("A")` | `{ variable: "x", operator: "startsWith", value: "A" }` |
 | `["A","B"].includes(x)` | `{ variable: "x", operator: "in", value: ["A","B"] }` |
 | `case "A":` | `{ variable: <discriminant>, operator: "==", value: "A" }` |
@@ -302,7 +313,8 @@ Optional property access dùng chung key với property access thường:
 | Khớp đúng một dạng ở trên, không còn gì khác (`x === "A"`) | có | `certain` |
 | Chuỗi `&&` có ít nhất một hạng tử parse được (`x === "A" && f(y)`) | `parsed` giữ hạng tử đầu để tương thích; `parsedConjuncts` giữ mọi hạng tử parse được khi có nhiều hơn một | `unknown` |
 | Chuỗi `\|\|` (`x === "A" \|\| y`) | `undefined` | `unknown` |
-| Không parse được (`count > 10`, `flag === true`, `tags.length === count`, `f(x)`, `!flag`) | `undefined` | `unknown` |
+| So sánh bằng/khác với string, number, boolean hoặc null (`rows.length === 0`, `flag === true`) | có | `certain` |
+| Không parse được (`count > 10`, `tags.length === count`, `f(x)`, `!flag`) | `undefined` | `unknown` |
 
 ### Chuỗi `&&` nhiều biến
 
@@ -319,6 +331,14 @@ biểu thức true vì có thể còn hạng tử không parse được.
 | `confidence: "certain"` + có `parsed` | Kết luận hai chiều. parsed cho `false` → prune nhánh `true`; parsed cho `true` → prune nhánh `false`. |
 | `confidence: "unknown"` + có `parsed` / `parsedConjuncts` | **Chỉ một chiều**: bất kỳ parsed conjunct cho `false` → toàn bộ biểu thức chắc chắn `false` → prune nhánh `true`. Các conjunct đã biết đều cho `true` → **KHÔNG prune gì** (hạng tử còn lại vẫn có thể sai). |
 | `confidence: "unknown"` + không `parsed` | Không prune. Giữ cả hai nhánh. |
+
+### Mock query/runtime tường minh
+
+Filter có thể nhận constraint đặc biệt `@condition:<nodeId> = "true" | "false"` do chính người dùng
+bật trong UI. Đây là **giả định scenario tường minh**, không phải kết luận của analyzer: nó được phép
+chọn trực tiếp edge `true` hoặc `false` của đúng node condition đó, kể cả khi biểu thức không có
+`parsed`. Giá trị khác `true`/`false` phải bị bỏ qua. Mock không gọi DB, không chạy source code và
+không được ghi ngược vào `FlowGraph`.
 
 Tại sao `\|\|` không được điền `parsed`: với `\|\|`, kết luận chắc chắn chạy theo chiều
 ngược lại (một hạng tử `true` → cả biểu thức `true`). Schema không có chỗ ghi chiều của

@@ -53,6 +53,9 @@ describe("if / if-else / else-if", () => {
     const cond = node(g, 'condition:flag === "yes"');
     expect(cond.condition?.parsed).toEqual({ variable: "flag", operator: "==", value: "yes" });
     expect(cond.confidence).toBe("certain");
+    expect(node(g, 'statement:out = "accepted"').parentId).toBe(cond.id);
+    expect(node(g, 'statement:out = "rejected"').parentId).toBe(cond.id);
+    expect(node(g, "return:return out").parentId).toBeUndefined();
   });
 
   it("else-if lồng nhau: KHÔNG tạo node riêng cho khối else", () => {
@@ -78,5 +81,13 @@ describe("if / if-else / else-if", () => {
       ],
       warningCount: 0,
     });
+
+    const outer = node(g, "condition:score >= 90");
+    const nestedThen = node(g, 'condition:bonus === "gold"');
+    const nestedElse = node(g, "condition:score >= 80");
+    expect(nestedThen.parentId).toBe(outer.id);
+    expect(nestedElse.parentId).toBe(outer.id);
+    expect(node(g, 'return:"A+"').parentId).toBe(nestedThen.id);
+    expect(node(g, 'return:"B"').parentId).toBe(nestedElse.id);
   });
 });
